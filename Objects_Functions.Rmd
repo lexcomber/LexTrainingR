@@ -491,7 +491,7 @@ The `Condition` statement is composed of one or more `Logical operators` and in 
 
 Logical Operator	|	Description
 ----------	|	----------
-\==	|	Equal
+==	|	Equal
 \!=	|	Not equal
 \>	|	Greater than
 \<	|	Less than
