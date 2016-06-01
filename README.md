@@ -3,6 +3,7 @@ Materials developed and used for various R training courses based on this book: 
 
 ## The Intermediate R course 
 This was delivered in Leeds in May 2016 included the following modules developed by Lex Comber:
+
 1. [Objects, functions and concepts for efficient R programming](https://github.com/lexcomber/LexTrainingR/blob/master/Objects_Functions.Rmd)
 2. Spatial Data in R
 3. [Manipulating spatial objects in R](https://github.com/lexcomber/LexTrainingR/blob/master/Manipluating_Spatial_Objects.Rmd)
