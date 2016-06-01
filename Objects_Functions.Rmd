@@ -44,6 +44,21 @@ df1 <- data.frame(type = c("character", "complex", "double", "expression", "inte
 knitr::kable(df1, caption = "Core data types, associated tests and conversions") 
 ```
 
+type	|	test	|	conversion
+----------	|	----------	|	----------
+character	|	is.character	|	as.character
+complex	|	is.complex	|	as.complex
+double	|	is.double	|	as.double
+expression	|	is.expression	|	as.expression
+integer	|	is.integer	|	as.integer
+list	|	is.list	|	as.list
+logical	|	is.logical	|	as.logical
+numeric	|	is.numeric	|	as.numeric
+single	|	is.single	|	as.single
+raw	|	is.raw	|	as.raw
+
+
+
 In the same way it is possible to test and coerce data **classes**:
 ```{r, echo=F}
 df1 <- data.frame(class = c("character", "logical", "numeric", "vector", "matrix", "data.frame", "array", "factor"), test = c("is.character", "is.logical", "is.numeric", "is.vector", "is.matrix", "is.data.frame", "is.array", "is.factor"), conversion = c("as.character", "as.logical", "as.numeric", "as.vector", "as.matrix", "as.data.frame", "as.array", "as.factor"))
