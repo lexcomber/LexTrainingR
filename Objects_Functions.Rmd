@@ -5,15 +5,14 @@ author:
 date: "May 2016"
 output: pdf_document
 ---
-# Introduction #
+# Introduction
 If you have done a little bit of R then undoubtedly you will have encountered different data structures and you will have used functions, even if you were aware of it or not. As your R expertise progresses, you will probably try to solve more complex problems using, manipulating different data structures. This chapter covers a lot of ground – it will:
 
 - Introduce data types and classes (vectors, lists, matrices, S4, data frames)
 - Describe how to test for and manipulate data types
 - Describe how to read, write, load and save different data types
 
-# Part 1: Basic Ingredients #
-
+# Part 1: Basic Ingredients
 I am sure you are familiar with assigning values to variables and possibly even to different types of variables. Lets have a look at the `cars` dataset.
 ```{r}
 summary(cars)
@@ -39,7 +38,7 @@ is.logical(is.vector(my.var))
 
 The basic or core data **types** and associated tests and conversions are shown in the table below.
 
-**Table 1**. Core data types, associated tests and conversions
+->**Table 1**. Core data types, associated tests and conversions<-
 
 type	|	test	|	conversion
 ----------	|	----------	|	----------
@@ -56,7 +55,7 @@ raw	|	is.raw	|	as.raw
 
 In the same way it is possible to test and coerce data **classes**:
 
-**Table 2**. Core data classes, associated tests and conversions
+->**Table 2**. Core data classes, associated tests and conversions<-
 
 class	|	test	|	conversion
 ----------	|	----------	|	----------
@@ -96,10 +95,8 @@ flow
 
 If you are not familiar with the 
 
-# Some more specific examples #
-
-## Factors ##
-
+# Some more specific examples
+## Factors
 The function `factor` creates a vector with specific categories, defined in the levels parameter. The ordering of factor variables can be specified and an ordering function also exists. The functions `as.factor` and `as.ordered` are the coercion functions. The test `is.factor` returns TRUE or FALSE depending on whether their arguments is of factor type or not and `is.ordered` returns `TRUE` when its argument is an ordered factor and `FALSE` otherwise. First, let us examine factors:
 
 ```{r}
@@ -126,8 +123,7 @@ house.type
 
 Factors are useful for categorical or classified data – that is, data values that must fall into one of a number of predefined classes. It is obvious how this might be relevant to geographical analysis, where many features represented in spatial data are labelled using one of a set of discrete classes. Ordering allows inferences about preference or hierarchy to be made (lower–higher, better–worse, etc.) and this can be used in data selection or indexing (as above) or in the interpretation of derived analyses.
 
-## Ordering ## 
-
+## Ordering  
 There is no concept of ordering in factors. However, this can be imposed by using the ordered function.
 ```{r}
 income <-factor(c("High", "High", "Low", "Low", "Low", "Medium", 
@@ -147,8 +143,8 @@ The functions `sort` and `table` are helpful functions. In the above code relati
 ```{eval=F}
 sort(income)
 ```
-## Lists ##
 
+## Lists
 The `character`, `numeric` and `logical` data types and the associated data classes described above all contain elements that must all be of the same basic type. Lists do not have this requirement. Lists have slots for different elements and can be considered as *an ordered collection of elements*. A `list` allows you to gather a variety of different data types together in a single data structure and the *nth* element of a `lista is denoted by double square brackets.
 ```{r}
 tmp.list <- list("Lex Comber",c(2005, 2016), 
@@ -173,8 +169,7 @@ lapply(tmp.list, length)
 ```
 Note that the length of a matrix, even when held in a list, is the total number of elements.
 
-## Defining your own classes ##
-
+## Defining your own classes
 In R it is possible to define your own data type and to associate it with specific behaviours, such as its own way of printing and plotting / drawing. For example, later the `plot` function is used to draw maps for spatial data objects. This is because a variant of the function `plot` has been defined for the `SpatialPolygon/Point/Line` classes of objects and R applies this function when these objects are passed to it. 
 
 To illustrate this, suppose we create a list containing some employee information.
@@ -201,17 +196,22 @@ You can see that R knows to use a different print function if the argument is a 
 print(unclass(employee))
 ```
 
-# Very important point # 
-
+# Very important point
 The ability to define different classes of variable in R is a very important property: many packages or libraries define specific classes. A key example is the package `sp`. This defines a number of class of variables that relate to commonly used spatial data formats. You may have to install this package if you have not used it before:
 `install.packages("sp", dep = TRUE)`. Some of the more commonly used classes defined in `sp` are listed in the table below.
-```{r, echo=F}
-df1 <- data.frame(NonAttributed = c("SpatialPoints", "SpatialLines", "SpatialPoints", "SpatialPixels", "SpatialGrid"), Attributed = c("SpatialPointsDataFrame", "SpatialLinesDataFrame", "SpatialPolygonsDataFrame", "SpatialPixelsDataFrame", "SpatialGridDataFrame"), ArcGIS_version = c("Point shapefiles", "Line shapefiles", "Polygon shapefiles", "Raster", "Grid")) 
-knitr::kable(df1, caption = "The `sp` spatial data classes") 
-```
 
-## The `sp` Spatial Data format ##
+->**Table 3** The `sp` spatial data classes<-
 
+NonAttributed	|	Attributed	|	ArcGIS version
+----------	|	----------	|	----------
+SpatialPoints	|	SpatialPointsDataFrame	|	Point shapefiles
+SpatialLines	|	SpatialLinesDataFrame	|	Line shapefiles
+SpatialPoints	|	SpatialPolygonsDataFrame	|	Polygon shapefiles
+SpatialPixels	|	SpatialPixelsDataFrame	|	Raster
+SpatialGrid	|	SpatialGridDataFrame	|	Grid
+
+
+## The `sp` Spatial Data format 
 You should load the `newhaven` dataset that comes as part of the `GISTools` package and explore the data types that are loaded using the `ls` function and then examine their geographic properties and attributes. You could even plot them!
 ```{r, eval=F}
 library(GISTools)
@@ -243,11 +243,11 @@ new.blcoks <- readShapePoly("blocks.shp")
 ```
 You should examine the `readShapeLines`, `readShapePoints`, `readShapePoly` functions and their associated `write` functions. You should also note that R is able to read and write other proprietary spatial data formats, which you should be able to find through a search of the R help system or via an internet search engine. 
 
-# Self-Test Questions Part 1# 
+# Self-Test Questions Part 1
 
 Below are a number of self-test questions. In contrast to the previous sections where the code is provided in the text for you to work through (i.e. you to enter and run yourself), the Self-Test Questions are tasks for you to complete, mostly requiring you to write R code. Answers to them are provided later in this document. The self-test questions relate to the main data types that have been introduced: `factors`, `matrices`, `lists` (named and unnamed) and `classes`.
 
-##Factors##
+##Factors
 Recall from the descriptions above that factors are used to represent categorical data - where a small number of categories are used to represent some characteristic in a variable. For example the colour of a particular model of car sold by a showroom in a week can be represented using factors:
 ```{r, eval=F}
 colours <- factor(c("red","blue","red","white",
@@ -324,7 +324,7 @@ engine > "1.1litre"
 - The counts of types (i.e. hatchback etc) of all cars with capacity below 1.6 litres. 
 - The counts of colours of all hatchbacks with capacity greater than or equal to 1.3 litres. 
 
-## Matrices ##
+## Matrices
 In the last section that you created a matrix called `crosstab` - and that this was a matrix. In earlier sections a number of functions were shown that could be applied to matrices:
 ```{r, eval=F}
 dim(crosstab) # Matrix dimensions
@@ -355,7 +355,7 @@ so that in this case, the second element is the largest. But I hope that you can
 
 There will be some more questions relating to Lists and other classes of variable after we have covered some ground on writing functions.  
 
-## Answers to self-test questions Part 1 ##
+## Answers to self-test questions Part 1
 
 **Q1**: 
 'orange' isn't one of the factor's levels, so the result is a `NA`.
@@ -401,7 +401,7 @@ An expression to find the index of the largest value in each row of `crosstab` u
 apply(crosstab,1,which.max)
 ```
 
-# Part 2: Functions #
+# Part 2: Functions
 So far much of what you have done has been line by line. However, there are occasions when either you want to do things a set number of times, or you want do do something reputedly or you may want to do something until some condition is met. The point is that you will **not** want to write repeated lines of code, that are nearly the same, expect for a small change. This is where functions can help. 
 
 The aim of 2nd part of this worksheet is to  introduce some basic programming principles and routines that will allow you to do many things repeatedly in single block of code. This is the basics of writing computer programmes. We will:
@@ -410,7 +410,7 @@ The aim of 2nd part of this worksheet is to  introduce some basic programming pr
 * Control loops in different ways using if, else, repeat, logical operators, etc 
 * Create  functions, test them and to make them universal
 
-## Condition Statements##
+## Condition Statements
 Consider the variable below: 
 ```{r, eval=T}
 student.heights <- c(1.38,1.61,1.67,1.52,1.32, 1.88, 1.94)
@@ -445,10 +445,10 @@ assess.student.height(student.heights2, 1.5)
 
 Notice how the code in the function `assess.student.height` above modifies the original loop: rather than `for(i in 1:3)` it now uses the length of the variable  `1:length(student.list)` to determine how many times to loop through the data. Also a variable `thresh` was used for whatever threshold the user wishes to specify.
 
-# Building blocks for Programs #
+# Building blocks for Programs
 In the examples above a number of programming concepts were introduced. Before we start to develop these more formally into functions it is important to explain these *ingredients* in a bit more detail.
 
-# Conditional Statements# 
+## Conditional Statements
 Conditional Statements test to see whether some *condition* is `TRUE` or `FALSE` and if the answer is `TRUE` some specific actions are undertaken. Conditional Statements are composed of :
 
 - **if** 
@@ -486,10 +486,20 @@ if (x < 0) cat("x is negative") else cat("x is positive")
 ```
 
 The `Condition` statement is composed of one or more `Logical operators` and in R these are defined as follows: 
-```{r, echo=F}
-df1 = data.frame(LogicalOperator = c("==", "!=", ">", "<", ">=", "<=", "!", "&", "|"), Description = c("Equal", "Not equal", "Greater than", "Less than", "Greater than or equal", "Less than or equal", "Not (goes in front of other expressions)", "And (combines expressions)", "OR (combines expressions)"))
-knitr::kable(df1, caption = "Logical operators") 
-```
+
+->**Table 4** Logical operators<-
+
+Logical Operator	|	Description
+----------	|	----------
+$==$	|	Equal
+$!=$	|	Not equal
+$>$	|	Greater than
+$<$	|	Less than
+$>=$	|	Greater than or equal
+$<=$	|	Less than or equal
+$!$	|	Not (goes in front of other expressions)
+\&\	|	And (combines expressions)
+\|\	|	OR (combines expressions)
 
 There are quite a few more `is`-type functions (i.e. `logical` evaluation functions) that return `TRUE` or `FALSE` statements that can be used to develop conditional tests. To explore these enter have a look at the functions beginning with I in the help of the R base package.
 
@@ -503,7 +513,6 @@ any(x==0)
 ```
 
 # Code Blocks: `{` and `}`
-
 Frequently we wish to execute a group of `Consequent` statements together if some `Condition` is `True`. Groups of statements are called `code blocks` and in R are contained by `{` and `}` The examples below show how `code blocks` can be used if a to execute `Consequent` statements and can be expanded to execute `Alternative` statements if the `Condition` is `False`.
 ```{r, echo=T}
 x <- c(1,3,6,8,9,5)
@@ -527,7 +536,7 @@ if (all(x > 0)) {
   cat("as numbers are rainfall levels") }
 ```
 
-## Functions ##
+## Functions
 The introductory section above included a function called `assess.student.height`. The format of a function is:
 `function name <- function(argument list) {R expression}`
 The R expression is usually a code block and in R the code is contained by curly brackets or braces: { and }. Wrapping the code into a `function` allows it to be used without having to retype the code each time you wish to use it. Instead, once the function has been defined and compiled, it can be called repeatedly and can be called with different arguments or parameters. Notice in the function below that there are a number offsets of containing brackets { } that are variously related to the  `Function`, the `Consequent` and the `Alternative`.  
@@ -555,8 +564,7 @@ mr <- mean.rainfall2(c(8.5,9.3,6.5,9.3,9.4))
 mr
 ```
 
-## Loops and repetition ##
-
+## Loops and repetition
 Very often, we would like to run a  code block a certain number of times, for example for each record in a `data.frame` or a `SpatialPolygonDataFrame`. This is done using `for` loops. The format of a loop is:
 `{ for( 'loop variable' in 'list of values' ) do R expression}`
 Again, typically code blocks are used as in the example of a `for` loop:
@@ -587,7 +595,7 @@ repeat{
   cat("The first square number exceeding",n, "is ",i.squared,"\n")
 ```
 
-## Debugging ##
+## Debugging
 As you develop your code and compile it into functions, especially initially, you will probably encounter a few teething problems: hardly any reasonably sized function works first time! There are two general kinds of problem :
 
 - The function crashes (i.e. it throws up an error)
@@ -624,7 +632,7 @@ ifelse
 ```
 This allows you to examine the code blocks and the  control etc in existing functions.
 
-## Self Test Questions Part 2 ##
+## Self Test Questions Part 2
 These practical questions are perhaps more self-directed than earlier ones. You will download some R code for 2 functions that do the following: 
 
 1. retrieves the geo-location of addresses that are passed to it from the Google API
@@ -632,14 +640,14 @@ These practical questions are perhaps more self-directed than earlier ones. You 
 
 Your overall task is to examine the code carefully. Then you will create a further R function to which if passed an address or some kind of geographic reference and a crime type, maps the crime around that location.
 
-### Materials you will need ###
-Firstly,  download the R file `getdata.R` from the practical folder (also included as an appendix in this document), and place it in your working directory.  Secondly, make sure you have all of the 'helper' packages installed: 'GISTools`, `rjson`, `RCurl` and `XML` installed.  If you do not have these, start up R and enter:
+### Materials you will need
+Firstly,  download the R file `getdata.R` from the GitHub folder (also included as an appendix in this document), and place it in your working directory.  Secondly, make sure you have all of the 'helper' packages installed: 'GISTools`, `rjson`, `RCurl` and `XML` installed.  If you do not have these, start up R and enter:
 ```{r, echo=T, eval=F}
 install.packages(c("GISTOOls", rjson","RCurl","XML"),depend=TRUE)
 ``` 
 Once these are installed you are ready to proceed.
 
-### Tasks ###
+### Tasks
 Firstly,  make sure  `getdata.R` is in your working directory.  Then enter:
 ```{r, echo=T, eval = F}
 source("getdata.R")
@@ -659,7 +667,7 @@ Write a new function called `map.my.local.crime.type` that takes an address, a m
 **Task 3** 
 Finally,  make sure that your code is commented,  including information explaining how to use your function,  as it is in `getdata.R`.
 
-### Some functions that may help ###
+### Some functions that may help
 You could explore the code below that generates a Google map around a location. First download a map:  
 ```{r}
 require(RgoogleMaps)
@@ -704,8 +712,8 @@ points(pts.XY$newX,pts.XY$newY,pch=16,col= 'darkred',cex=1.5)
 points(pts.XY$newX,pts.XY$newY,pch=16,col= 'white',cex=0.75)
 ```
 
-# END #
-\newpage
+# END
+
 # Appendix: `getdata.R` #
 ```{r, eval=F}
 # getdata.R
