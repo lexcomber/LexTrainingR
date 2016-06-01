@@ -1,0 +1,229 @@
+---
+title: "Manipulating spatial objects"
+author: "Lex Comber"
+date: "May 2016"
+output: pdf_document
+---
+
+# Introduction
+In this session you will learn how to apply some of the functions in the `rgeos` package for manipulating spatial objects. We will use the `tornados`, `us_states` datasets and `georgia` datasets in the `GISTools` package to illustrate a number of functions that support spatial operations. These include:
+
+- intersection
+- buffering
+- union (merging)
+
+# Intersection 
+Load the data as below and examine it:
+```{r, eval=T}
+library(GISTools)
+data(tornados)
+plot(us_states)
+plot(torn, add = T, cex = 0.2, pch = 19,
+    col = add.alpha(brewer.pal(7, "Greys"), 0.3)[4])
+```
+
+You will use this to extract the tornado data for a state (or states) of your choice using the 'gIntersection` function. 
+
+First, you should select a state of your choice - I have gone for Oklahoma only because I love a Rodgers & Hammerstein musical ("Oh, What a Beautiful Mornin", "You'll Never Walk Alone", "There Is Nothing Like a Dame"):
+```{r, eval=T}
+state <- us_states[us_states$STATE_NAME == "Oklahoma",]
+```
+
+Then perform the intersection and have a look:
+```{r, eval=F}
+torn.int <- gIntersection(state, torn, byid = TRUE) 
+par(mar=c(0,0,0,0))
+plot(state, col = "wheat")
+plot(torn.int, add = T, pch = 1, col = "#FB6A4A4C")
+```
+
+You can of course expand your selection of states:
+```{r, eval=T}
+# Or a selection of states as below
+state <- us_states[us_states$STATE_NAME == "Oklahoma" | 
+  us_states$STATE_NAME == "Texas" |
+  us_states$STATE_NAME == "Arkansas", ]
+```
+
+**AND**, interesting there is an easier and **much quicker** way to this which uses the spatial extent of the variable `state` to subset the tornado data:
+```{r, eval=T}
+torn.int <- torn[state, ]
+par(mar=c(0,0,1,0))
+plot(state, col = "wheat")
+plot(torn.int, add = T, pch = 1, col = "#FB6A4A4C")
+title("Tornados in Oklahoma, Texas and Arkansas")
+```
+
+# Buffers
+The function `gBuffer` does what it says: it applies a buffer to the `sp` object that is passed to it of the distance specified. Note it uses the units that the objects is specified in so **so do NOT use this on data that are in degrees**. For these reasons we will use the `us_states2` data that were loaded early. 
+
+The code below extracts a region of interest, applies a 20km buffer and then counts the tornados that are within the buffered region. 
+
+```{r, eval=T}
+state <- us_states2[us_states2$STATE_NAME == "Oklahoma" | 
+  us_states2$STATE_NAME == "Texas" |
+  us_states2$STATE_NAME == "Arkansas", ]
+state.buf <- gBuffer(state, width = 20000 )
+plot(state)
+plot(state.buf, add = T, border = "blue")
+torn.int <- torn2[state.buf,]
+```
+
+It is also possible to extract just the tornados (or any other set of events) that are within the buffer area by using the `gDifference` function:
+```{r, eval=T}
+buf.diff <- gDifference(state.buf, state)
+torn.int <- torn2[buf.diff,]
+plot(state, lty = 2)
+plot(buf.diff, add = T, col = "wheat")
+plot(torn.int, add = T, pch = 1, col = "#FB6A4A4C")
+
+```
+
+# Union
+The final operation consider here is the 'union' operation. There are 2 basic types of operation that are undertaken: 
+
+1. To merge (usually adjacent) polygons to one single polygon, for example to get the outline of an area of interest
+2. To overlay one dataset with another, for example 2 polygon datasets, to extract  their intersecting attributes
+
+The first is simple, the second requires really careful operation.
+
+## Merging 
+The `UnaryUnion` function can be used to merge polygons as below: 
+```{r, eval=T}
+merge <- gUnaryUnion(state)
+plot(state, border = "blue", lty = 2) 
+plot(merge, add = T, lwd = 1.5)
+```
+
+Of course another way to do this would be to apply a buffer with zero distance: 
+```{r, eval=T}
+merge <- gBuffer(state, width = 0 )
+plot(state, col = "tomato", lty = 2, bg = "lightgrey") 
+plot(merge, add = T, lwd = 4, border = "olivedrab")
+```
+
+## Full Union 
+The full union, between two polygon layers whose variables you want to combine, is more complex. It requires a degree of interpolation and areal weighting. Consider the example where there are large scale regular zones covering the USA. The objective is to take the data used already in this section and to work out how many people and houses there are in each zone. This is done by determining the proportion of the area of each US state falling within each zone  and then allocating the the same proportion of the population to each zone. This is to assume that all the people in each state are spread about evenly which may be an unreasonable assumption, but this is a very commonly used approach to zonation and for example emergency planning on smaller scales. 
+```{r, eval=T}
+# define a zone grid in polygons
+bb <- bbox(us_states2)
+grd <- GridTopology(cellcentre.offset=
+      c(bb[1,1]-200,bb[2,1]-200),
+      cellsize=c(100000,100000), cells.dim = c(47,29)) 
+int.layer <- SpatialPolygonsDataFrame(
+      as.SpatialPolygons.GridTopology(grd),
+      data = data.frame(c(1:1363)), match.ID = FALSE) 
+names(int.layer) <- "ID"
+proj4string(int.layer) <- proj4string(us_states2)
+```
+
+Now have a look at these layers: 
+```{r, eval=T}
+plot(us_states2, col = "gold")
+plot(int.layer, add = T)
+```
+
+And then get rid of the superfluous grid cells and check:
+```{r, eval=T}
+int.layer <- int.layer[us_states2,]
+# ignore the warning
+plot(us_states2, col = "gold")
+plot(int.layer, add = T)
+```
+
+Now you need to undertake the big intersection - this may take some time - but afterwards have a look at what is created - this shows you the origins of each polygon in terms of which of the inputs it combines:
+```{r, eval=T}
+int.res <- gIntersection(int.layer, us_states2, byid = T)
+head(names(int.res))
+# and look at the rownames of the inputs
+head(data.frame(int.layer)) # the 'gx' in int.res
+head(data.frame(us_states)[,c(1,2, 6:9)]) # the digit after in int.res
+```
+
+The next stage is to untangle the intersection results such that the properties  / attributes of each input layer can be linked to the intersection outputs. This done by using `strsplit` - a `text`, `character` or `string` manipulation function: 
+```{r, eval=T}
+tmp <- strsplit(names(int.res), " ") 
+states.id <- (sapply(tmp, "[[", 2)) 
+intlayer.id <- (sapply(tmp, "[[", 1))
+```
+
+Then, the proportions of the original tract areas need to be extracted – these will be used to proportionally allocate the counts of houses to the zones.
+
+```{r, eval=T}
+# generate area and proportions
+int.areas <- gArea(int.res, byid = T) 
+states.areas <- gArea(us_states2, byid = T)
+# match this to the new layer
+index <- match(states.id, row.names(us_states2)) 
+states.areas <- states.areas[index]
+states.prop <- int.areas/states.areas
+# Finally create data frame for the new layer
+df <- data.frame(intlayer.id, states.prop)
+# HERE is where you get the proportions of the 
+# variables of interest from the original data 
+pop97 <- zapsmall(us_states2$POP1997[index] * states.prop, 1) 
+houses <- zapsmall(us_states2$HOUSEHOLDS[index] * states.prop, 1) 
+df <- data.frame(df, pop97, houses, int.areas)
+```
+
+Finally, the new data frame is summarised using `xtabs` so that the data are summarised for each of the polygons in `int.layer`. Then it can be linked back to the original zone areas. The code below does this twice for the population and household variables:
+
+```{r, eval=T}
+# create the vector the houses
+int.layer.houses <- xtabs(df$houses~df$intlayer.id)
+index <- as.numeric(gsub("g", "", names(int.layer.houses))) 
+# use a temporary variable
+tmp <- vector("numeric", length = dim(data.frame(int.layer))[1]) 
+tmp[index] <- int.layer.houses
+i.houses <- tmp
+i.houses <- i.houses[int.layer$ID]
+
+# then create the vector for the population
+int.layer.pop <- xtabs(df$pop97~df$intlayer.id)
+index <- as.numeric(gsub("g", "", names(int.layer.houses))) 
+# use a temporary variable
+tmp <- vector("numeric", length = dim(data.frame(int.layer))[1]) 
+tmp[index] <- int.layer.pop
+i.pop <- tmp
+i.pop <- i.pop[int.layer$ID]
+
+# Now joun them togther in a SPDF
+int.layer <- SpatialPolygonsDataFrame(int.layer, 
+  data = data.frame(houses = i.houses, pop = i.pop), match.ID = FALSE)
+```
+The results can be mapped. Does this populaion distribution seem reasonable given the orginal data?
+```{r, eval=T}
+par(mar = c(0,0,0,0))
+par(mfrow = c(1,2))
+choropleth(int.layer, v = int.layer$pop)
+choropleth(us_states2, us_states2$POP1997)
+```
+
+# Task
+There is only one task for this section: you are to construct a function that takes 2 polygon inputs, one of zones and another of say population areas, and returns a `SpatialPoygonDataframe` of the zones populated by the variable of interest.
+
+**Hint** - try to build this up with a series of helper functions
+
+So these might include:
+
+1. As a preliminary step, create and trim a zone grid (will need grid size to be specified, checks for projection etc)
+
+2. Do the intersection and sort out what comes out of the overlay
+
+3. Calculate areas proportions and set up the new data frame
+
+4. Sort out and clean (using the xtabs and index approach above)
+
+5. Create SPDF and return the result
+
+## Additional Tasks:
+Extend this to work with a list of variable names
+
+Extend this to work with variables other than counts (what about say index of deprivation scores - you would not want the an area weighted sum but perhaps the an area weighted average) 
+
+# END
+
+
+
+
+
