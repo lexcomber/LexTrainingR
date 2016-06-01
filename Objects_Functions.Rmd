@@ -491,15 +491,15 @@ The `Condition` statement is composed of one or more `Logical operators` and in 
 
 Logical Operator	|	Description
 ----------	|	----------
-$==$	|	Equal
-$!=$	|	Not equal
-$>$	|	Greater than
-$<$	|	Less than
-$>=$	|	Greater than or equal
-$<=$	|	Less than or equal
-$!$	|	Not (goes in front of other expressions)
-\&\	|	And (combines expressions)
-\|\	|	OR (combines expressions)
+\==	|	Equal
+\!=	|	Not equal
+\>	|	Greater than
+\<	|	Less than
+\>=	|	Greater than or equal
+\<=	|	Less than or equal
+\!	|	Not (goes in front of other expressions)
+\&	|	And (combines expressions)
+\|	|	OR (combines expressions)
 
 There are quite a few more `is`-type functions (i.e. `logical` evaluation functions) that return `TRUE` or `FALSE` statements that can be used to develop conditional tests. To explore these enter have a look at the functions beginning with I in the help of the R base package.
 
