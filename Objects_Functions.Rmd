@@ -38,7 +38,7 @@ is.logical(is.vector(my.var))
 
 The basic or core data **types** and associated tests and conversions are shown in the table below.
 
-->**Table 1**. Core data types, associated tests and conversions<-
+**Table 1**. Core data types, associated tests and conversions
 
 type	|	test	|	conversion
 ----------	|	----------	|	----------
@@ -55,7 +55,7 @@ raw	|	is.raw	|	as.raw
 
 In the same way it is possible to test and coerce data **classes**:
 
-->**Table 2**. Core data classes, associated tests and conversions<-
+**Table 2**. Core data classes, associated tests and conversions
 
 class	|	test	|	conversion
 ----------	|	----------	|	----------
@@ -200,7 +200,7 @@ print(unclass(employee))
 The ability to define different classes of variable in R is a very important property: many packages or libraries define specific classes. A key example is the package `sp`. This defines a number of class of variables that relate to commonly used spatial data formats. You may have to install this package if you have not used it before:
 `install.packages("sp", dep = TRUE)`. Some of the more commonly used classes defined in `sp` are listed in the table below.
 
-->**Table 3** The `sp` spatial data classes<-
+**Table 3** The `sp` spatial data classes
 
 NonAttributed	|	Attributed	|	ArcGIS version
 ----------	|	----------	|	----------
@@ -487,7 +487,7 @@ if (x < 0) cat("x is negative") else cat("x is positive")
 
 The `Condition` statement is composed of one or more `Logical operators` and in R these are defined as follows: 
 
-->**Table 4** Logical operators<-
+**Table 4** Logical operators
 
 Logical Operator	|	Description
 ----------	|	----------
