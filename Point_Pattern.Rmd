@@ -1,0 +1,197 @@
+---
+title: "Point Pattern Analysis"
+author: "Lex Comber"
+date: "May 2016"
+output: pdf_document
+---
+
+# Introduction
+This session will illustrate different methods for converting a point dataset to a raster surface. 
+
+The simplest way to a consider a two-dimensional point patterns is to assume that each location  is drawn independently and randomly from an unknown distribution with probability density function. If we think of locations in space as a very fine pixel grid, and assume a value of probability density is assigned to each pixel, then summing the pixels making up an arbitrary region on the map gives the probability that an event occurs in that area. It is generally more practical to assume an unknown distribution rather than for example a Gaussian distribution, since geographical patterns often take on fairly arbitrary shapes. 
+
+We will consider two types of points - points describing the incidence (presence) of some phenomena and points measuring the value of some feature at a specific location.
+
+# Kernel Density Estimation
+
+Commonly used techniques used to estimate distributions of events is the kernel density estimate or KDE. KDEs operate by averaging a series of small 'bumps', probability distributions in two dimensions, centred on each observed point. 
+
+There are a number of packages in R that provide code for computing KDEs. Here, the tools in the `GISTools` package will be used. The steps used to produce a KDE map here are as follows:
+
+1. Calculate the KDE
+The `kde.points` function  estimates the value of the density over a grid of points, and returns the result as a `grid` object. It takes two arguments – the set of points to use, and another geographical object to set the extent of the output grid. Other optional arguments allow the bandwidths to be specified.
+2. Plot the KDE. 
+The KDEs will be mapped as filled contour lines, rather than represented as three-dimensional objects as in Figures 6.1 and 6.2. In this way it is easier to add other geographical entities. The `level.plot` function plots the resultant grid from the KDE as a rectangular grid extending beyond the point data.
+3. Clip the plot to the study area. 
+The `poly.outer` function can be used to clip the grid to a nicer boundary and generates  a SpatialPolygons object consisting of a rectangle with a hole of the shape of the SpatialPolygons or SpatialPolygonsDataFrame input. 
+
+The code to perform these operations is below using the `breach` data as part of the `newhaven` datasets this is included in the `GISTools` package is shown below. This data records breaches of the peace.
+
+```{r, eval=T, message=FALSE}
+library(GISTools)
+# load the data
+data(newhaven)
+# 1. Have a look at breach
+class(breach)
+plot(tracts)
+plot(breach, add = T)
+# 2. Calculate the KDE
+breach.dens <- kde.points(breach,lims=tracts) 
+# 3. Plot the KDE
+# with a level plot 
+level.plot(breach.dens)
+# 4. Clip the plot
+# use the 'masking' function 
+masker <- poly.outer(breach.dens,tracts,extend=100) 
+add.masking(masker)
+# Add the census tracts 
+plot(tracts,add=TRUE)
+```
+
+## Self-Test Question 1.
+
+KDE is also useful for comparative purposes. In the New Haven dataset there are also data relating to burglaries from residential properties. These are divided into two classes, burglaries that involve forced entry and burglaries that do not. These are `burgres.f` and `burgres.n` respectively and both are of the class `SpatialPoints`. 
+
+Your task is to develop some code to compare the spatial distributions of the two groups of burglaries and to try to show these side by side.
+
+Hint you can set the plotting panels using the following code 
+```{r, eval=F}
+par(mfrow = c(nrows, ncols))
+```
+
+The answer is at the end of this worksheet
+
+# Interpolation 
+
+The previous section can be thought of as outlining methods for analysing point patterns with categorical attributes such as the presence of a phenomenon. Frequently in the analysis of point patterns the data describe continuous measurements such as height above sea level, soil conductivity or house price. 
+The objective is to generate a surface describing the value in unknown locations - so called 'A typical problem here is 'interpolation'. In this the goal is to estimate the value of *z* at some new point *x* from a sample *{z1 ,..., zn}* at locations *{x1 ,..., xn}*.
+
+Possible methods for doing include:
+
+1. Nearest neighbour interpolation 
+2. Inverse distance weighting (IDW)
+3. Kriging
+
+Here we will examine IDW and Kriging.
+
+## IDW
+
+Inverse distance weighting (IDW) estimate the value of *z* at location *x* using a weighted mean of nearby observations. It assumes that observations of *z* at points closer to *x* should be given more importance in the interpolation and greater weight is given to these points.
+
+The `muese` data will be used which has data recording zinc levels, and the aim is to interpolate this to get values for each cell in the `meuse.grid` dataset. It might be useful to re-familiarise yourself with these 2 datasets:
+
+First, let's look at `meuse`:
+
+```{r, eval=T, message=F}
+library(sp)
+library(gstat)
+data(meuse)
+head(meuse)
+dim(meuse)
+# only 155 data points
+# conver to SPDF
+coordinates(meuse) <- ~x+y
+plot(meuse)
+```
+
+Second, now let's examine `muese.grid`:
+```{r, eval=T, message=F}
+data(meuse.grid)
+head(meuse.grid)
+dim(meuse.grid)
+# 3103 data points
+# conver to SPDF
+coordinates(meuse.grid) <- ~x+y
+plot(meuse.grid)
+```
+
+The `gstat` package has a function called `idw` that performs inverse distance weighting. You should load this package and examine this function:
+```{r, eval=T, message=F}
+library(gstat)
+?idw
+```
+
+Now apply this function to generate a surface of zinc and p[lot the results:
+```{r, eval=T, message=F}
+zinc.idw = idw(zinc~1, meuse, meuse.grid)
+# create a pixel surfacce 
+tmp <- as(zinc.idw, "SpatialPixelsDataFrame")
+spplot(tmp["var1.pred"], 
+  main = "zinc IDW interpolation")
+```
+
+## Kriging 
+The data values produced by the IDW interpolation always passes exactly through uniquely located measurement points. If the data are the result of very reliable measurement, and the underlying process is largely deterministic, this is fine. However, if the process is subject to random errors in measurement or sampling, or the underlying process is stochastic, there will be a degree of random variability in the observed values. In kriging, the observed quantity *zi* is modelled to be the outcome of a random process composed of *f(xi)*, a deterministic trend function, *v(xi)*, a random error of observation associated with the measurement or sampling error at the point *xi* that is assumed to have a Gaussian distribution with mean zero and variance of 2 standard deviations. This is sometimes called the *nugget* effect, reflecting the fact that kriging was initially applied in gold mining to estimate mineral concentration. However, although this was modelled as a continuous quantity, in reality minerals such as gold occur in small nuggets and exploratory mining samples taken at certain locations would be subject to highly localised variability, depending on whether or not a nugget was discovered. 
+
+Variograms are calculated using the function `variogram`, which takes a formula as its first argument: `log(zinc)~1` means that we assume a constant trend for the variable `log(zinc)`. You should examine the outputs of the application of `variogram` to determine the selection of inputs into the `fit.variogram` function, especially the `dist` and `gamma` values. Then the sill and fit of the variogram can be examined:
+
+```{r, eval=T, message=F}
+evgm <-variogram(zinc~1,meuse)
+lzn.fit = fit.variogram(evgm, model = vgm(150000, "Sph", 900, 1))
+lzn.fit
+plot(evgm, lzn.fit)
+```
+If you are happy with the model fit to the semi-variance then the model can be used to 'krig' the data:
+
+```{r, eval=T, message=F}
+lzn.kriged = krige(zinc~1, meuse, meuse.grid, model = lzn.fit)
+tmp <- as(lzn.kriged, "SpatialPixelsDataFrame")
+spplot(tmp["var1.pred"], 
+  main = "zinc Krige interpolation")
+```
+
+It also possible to examine the variance of the interpolated results (for both the kriged and IDW approaches: 
+```{r, eval=T, message=F}
+spplot(tmp["var1.var"], 
+  main = "zinc Krige variance")
+```
+
+## Self-Test Question 2.
+You should play around with the inputs to the 'fit.variogram` function, specifically the `vgm` function, particulalry the `psill`, `model` and `range` parameters. How sensitive are the results? How could you determine the best fit for the model?
+
+# Answers to Self-Test Questions
+
+**Q1:**
+```{r, eval=T}
+# R Kernel Density comparison
+require(GISTools)
+data(newhaven)
+# Set up parameters to create two plots side by side
+# with 2 line margin at the top, no other margins
+par(mfrow=c(1,2),mar=c(0,0,2,0))
+# Part 1. KDE for forced entry
+brf.dens <- kde.points(burgres.f,lims=tracts) 
+level.plot(brf.dens)
+# Use ‘masking’ as before
+masker <- poly.outer(brf.dens,tracts,extend=100) 
+add.masking(masker)
+plot(tracts,add=TRUE)
+# Add a title
+title("Forced Burglaries")
+
+# Part 2. KDE for non-forced entry 
+brn.dens <- kde.points(burgres.n,lims=tracts) 
+level.plot(brn.dens)
+# Use ‘masking’ as before
+masker <- poly.outer(brn.dens,tracts,extend=100) 
+add.masking(masker)
+plot(tracts,add=TRUE)
+# Add a title
+title("Non-Forced Burglaries") 
+# reset par(mfrow) 
+par(mfrow=c(1,1))
+```
+
+Although there are some similarities in the two patterns, the non-forced entries there is a more prominent peak in the east, whilst for forced entries the stronger peak is to the west.
+
+**Q2:**
+Kriging: There are no right answers here and we do not have enough time to run a full module on this topic but you should at least familiarise yourself with the operation of the functions. Good overviews are at: http://desktop.arcgis.com/en/arcmap/10.3/tools/3d-analyst-toolbox/how-kriging-works.htm
+
+And full explanations can be found at:
+
+- P. Goovaerts, 1997. Geostatistics for Natural Resource Evaluation, New York, Oxford University Press.
+- G. Matheron, 1970. La Theorie des Variables Regionalisees et ses Applications, Fascicule 5, Les Cahiers du Centre de Morphologie Mathematique, Ecole des Mines de Paris, Fontainebleau, p.212.
+- N. Cressie, 1993. Statistics for Spatial Data, New York, J. Wiley.
+
+# END
+
