@@ -265,9 +265,9 @@ So based on the 2 factors of land use and low cadmium all but some regions at th
 # Answer to Self-Test Question
 The the `meuse` datasets has attributes for 155 locations (points). There are many ways to determine a risk / suitability surface, and we will describe some of these in later exercises, but the approach taken here is to generate an overall suitability measure for each of the 55 points and then to interpolate this to a surface as in the short worked example above.
 
-Stages in the analysis: 
+##Stages in the analysis: 
 
-1. Constraints and Factors
+###Constraints and Factors
 
 a. lowest flood risk
 ```{r, eval=T}  
@@ -326,13 +326,13 @@ e. higher elevation
 elevation <- meuse$elev/max(meuse$elev)
 ```
 
-2. Now combine the factors and rescale the result
+###Now combine the factors and rescale the result
 ```{r, eval=T} 
 result <- f.risk * l.use * lead * cadmium * elevation
 result <- result / max(result)
 ```
 
-3. Finally interpolate to a surface
+###Finally interpolate to a surface
 ```{r, eval=T} 
 data(meuse)
 meuse <- cbind(meuse, result)
