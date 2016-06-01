@@ -1,0 +1,168 @@
+---
+title: "Spatial Data in R"
+author: "Lex Comber"
+date: "May 2016"
+output: pdf_document
+---
+
+# Introduction
+
+OK - so what we have covered already covered different data types in R and some plotting routines. Along the way you were introduced the `sp` spatial classes. In this part of the course we will examine these in a bit more detail AND critically, consider some the issues for **spatial analysis** related to how the data are defined and projected. Recall some of the commonly used classes defined in `sp` listed in the table below.
+
+**Table 1** The `sp` spatial data classes
+
+NonAttributed	|	Attributed	|	ArcGIS version
+----------	|	----------	|	----------
+SpatialPoints	|	SpatialPointsDataFrame	|	Point shapefiles
+SpatialLines	|	SpatialLinesDataFrame	|	Line shapefiles
+SpatialPoints	|	SpatialPolygonsDataFrame	|	Polygon shapefiles
+SpatialPixels	|	SpatialPixelsDataFrame	|	Raster
+SpatialGrid	|	SpatialGridDataFrame	|	Grid
+
+
+Most spatial analyses require data to be projected. That is they have coordinates that are specified in a distance unit rather degrees. Usually this is metres, occasionally feet and even more occasionally units such as the Austrian Inch (see https://en.wikipedia.org/wiki/Austrian_units_of_measurement). This then allows distance-related operations to be undertaken calculation of area, shortest paths, perimeters, etc.
+So you will occasionally have to assign a projection to your data and then re-project it the desired projection, for example when integrating data from different sources.
+
+A key source of information for spatial data, that may come you with all kinds of spatial reference, is http://spatialreference.org. Here you can search for and find the links and code for 1000s of different projections - for example the OSGB projection details are at http://spatialreference.org/ref/epsg/27700/ and the proj4string commonly used in R is at http://spatialreference.org/ref/epsg/27700/proj4/
+
+In this exercise you will: 
+
+- create a SpatialPointsDataFrame
+- assign a WG84 projection using the `proj4string` function 
+- re-project this data to OS national grid projections using the `spTransform` function
+- calculate some distances between points 
+
+# Spatial*XYZ*DataFrame
+The data structures in Table 1 have 2 *really important and obvious* components and 1 *really important but not so obvious* component. The obvious components are suggested by the name of data classes:
+
+**Spatial***XYZ***DataFrame**
+
+The not so obvious is the projection of the data, which will define *how* the world is represented by the spatial data.  
+
+Thus we would expect the structures to have a spatial component and a data frame (or `data.frame` in the language of R) component. Let's load some packages / libraries and data and have look. ***NB*** as you may have gathered some packages have dependencies and load other packages when they are loaded - see what gets loaded with the `GISTools` package, and many packages have data with them.
+
+If you have not done so already you should install the GISTools package and its dependencies
+```{r, eval=F}
+install.packages("GISTools", dep = T)
+```
+Then load it and the `georgia` datasets:
+```{r, eval=T, message='hide'}
+library(GISTools)
+data(georgia)
+```
+Then have a look at what is loaded:
+```{r, eval = F}
+ls()
+```
+
+You can see that there are 3 'georgia' datasets. Investigate these using the `summary` function:
+```{r, eval=F}
+summary(georgia)
+summary(georgia2)
+sumamry(georgia.polys)
+```
+You could also plot them
+```{r, eval=T}
+par(mfrow = c(1,2))
+plot(georgia2)
+title("georgia2")
+georgia.outline <- gUnaryUnion(georgia2, id = NULL) # plot the spatial layers
+plot(georgia, col = "red", bg = "wheat", lty = 2, border = "blue")
+plot(georgia.outline, lwd = 3, add = TRUE)
+title("georgia")
+```
+
+**Self-Test Questions 1:** 
+
+- What R class of object are each of these? 
+- What are the differences between `georgia` and `georgia2`? 
+
+# Creating `SpatialPointsDataFrame` objects in R 
+The `georgia` and `georgia2` examples above were both object of class `SpatialPolygonsDataFrame`. These are complex to create from fresh and typically you are more likely to read these into your R session or download from some open data repository than create them yourselves. 
+
+However, the basic process of creating any `Spatial*XYZ*` or `Spatial*XYZ*DataFrame` is the same and involves passing the same kinds of parameters to the function listed in Table 1:
+```{r, eval=F}
+my.sp <- SpatialXYZ(coordinates)
+my.spdf <- SpatialXYZDataFrame(coordinates, data.frame)
+```
+
+OK so lets get some data to convert to points. We will re-use code from the earlier session. You will need to load some packages first: 
+```{r, eval=T}
+require(GISTools)
+require(RCurl)
+require(rjson)
+crimes.buf <- getForm( 'http://data.police.uk/api/crimes-street/all-crime', 
+		lat=53.80366, lng = -1.553957, date = "2015-08")
+# The crimes.buf data are converted to an R object using fromJSON	
+crimes <- fromJSON(crimes.buf)
+# The below are besed on the previously introduced helper functions 
+# These extract location and attributes
+crimes.loc <- t(sapply(crimes,
+  function(x) as.numeric(c(x$location$longitude, x$location$latitude)))) 
+crimes.attr <- as.data.frame(t(sapply(crimes,
+  function(x) c( x$category, x$location$street$name, x$location_type)))) 
+colnames(crimes.attr) <- c("category", "street", "location_type")
+# These are converted to a SPDF
+crimes.pts <- SpatialPointsDataFrame(coords = crimes.loc,data = crimes.attr) 
+```
+At the moment the `crimes.pts` data have no projection information 
+```{r, eval=T}
+summary(crimes.pts)
+plot(crimes.pts, asp = 1)
+```
+
+In this case we know that the data have WG84 coordinates and the `proj4string` can be specified as follows: with the `proj4string` This can be
+```{r, eval=T}
+proj4string(crimes.pts) <- CRS("+proj=longlat")
+summary(crimes.pts)
+```
+
+Suppose we now want to do some distance or areas measures if this was a `SpatialPolygonDataFrame`. Distance (and related measures) cannot be reliability calculated from coordinates in degrees. The data need to be transformed into a projected coordinate system. The `spTransform` and `CRS` functions in the `sp` package does this. As a reminder `sp` is loaded with `GISTools`:
+```{r, eval=T}
+os.proj <- CRS("+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 
+  +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs ")
+crimes.pts2 <- spTransform(crimes.pts, os.proj)
+summary(crimes.pts2)
+```
+
+Distances in metres can then be calculated: 
+```{r, eval=T}
+d.mat <- as.matrix(dist(as.matrix(coordinates(crimes.pts2)), diag = F))
+round(d.mat[1:10,1:10], 1)
+```
+
+So the reason for `georgia` and `georgia2` are because one these supports distance and area based analyses and the other does not.  Try the following using the `gArea` function in `rgeos`
+```{r, eval=F}
+gArea(georgia)
+gArea(georgia2)
+gArea(georgia2) /1000000    #sq km
+gArea(georgia2, byid = T) /1000000 #sq km
+```
+
+You may wish to examine a number of really useful `gXxxx` functions in `rgeos`.
+
+**Self-Test Questions 2:** 
+You should load some of **your** data into R, create a SPDF, assign a projection to it and then try to re-project it. If it is already in an OS projection then convert it to WGS84 and vice versa.
+
+If you do not have any then: 
+
+- download the world borders here:  http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip
+
+- then set your working directory to the folder you downloaded it to (Hint `getwd()` can help here) 
+```{r, eval=T}
+setwd("/Users/geoaco/Downloads/TM_WORLD_BORDERS-0/")
+```
+
+- then finally, load the data using your read function of choice `readShapePoly` or `readOGR`:
+```{r, eval=F}
+data <- readShapePoly("TM_WORLD_BORDERS-0.3.shp")
+```
+
+- you may want to select for just European or UK data
+```{r, eval=F}
+data <- data[data$SUBREGION == 154,]
+data <- data[data$NAME == "United Kingdom",]
+```
+
+# END
+
