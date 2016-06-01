@@ -39,10 +39,7 @@ is.logical(is.vector(my.var))
 
 The basic or core data **types** and associated tests and conversions are shown in the table below.
 
-```{r, echo=F}
-df1 <- data.frame(type = c("character", "complex", "double", "expression", "integer", "list", "logical", "numeric", "single", "raw"), test = c("is.character", "is.complex", "is.double", "is.expression", "is.integer", "is.list", "is.logical", "is.numeric", "is.single", "is.raw"), conversion = c("as.character", "as.complex", "as.double", "as.expression", "as.integer", "as.list", "as.logical", "as.numeric", "as.single", "as.raw"))
-knitr::kable(df1, caption = "Core data types, associated tests and conversions") 
-```
+**Table 1**. Core data types, associated tests and conversions
 
 type	|	test	|	conversion
 ----------	|	----------	|	----------
@@ -57,13 +54,20 @@ numeric	|	is.numeric	|	as.numeric
 single	|	is.single	|	as.single
 raw	|	is.raw	|	as.raw
 
-
-
 In the same way it is possible to test and coerce data **classes**:
-```{r, echo=F}
-df1 <- data.frame(class = c("character", "logical", "numeric", "vector", "matrix", "data.frame", "array", "factor"), test = c("is.character", "is.logical", "is.numeric", "is.vector", "is.matrix", "is.data.frame", "is.array", "is.factor"), conversion = c("as.character", "as.logical", "as.numeric", "as.vector", "as.matrix", "as.data.frame", "as.array", "as.factor"))
-knitr::kable(df1, caption = "Core data classes, associated tests and conversions") 
-```
+
+**Table 2**. Core data classes, associated tests and conversions
+
+class	|	test	|	conversion
+----------	|	----------	|	----------
+character	|	is.character	|	as.character
+logical	|	is.logical	|	as.logical
+numeric	|	is.numeric	|	as.numeric
+vector	|	is.vector	|	as.vector
+matrix	|	is.matrix	|	as.matrix
+data.frame	|	is.data.frame	|	as.data.frame
+array	|	is.array	|	as.array
+factor	|	is.factor	|	as.factor
 
 Consider the code below. This creates a vector and then coerces it to a matrix 
 ```{r}
@@ -122,7 +126,7 @@ house.type
 
 Factors are useful for categorical or classified data – that is, data values that must fall into one of a number of predefined classes. It is obvious how this might be relevant to geographical analysis, where many features represented in spatial data are labelled using one of a set of discrete classes. Ordering allows inferences about preference or hierarchy to be made (lower–higher, better–worse, etc.) and this can be used in data selection or indexing (as above) or in the interpretation of derived analyses.
 
-## Ordering  ## 
+## Ordering ## 
 
 There is no concept of ordering in factors. However, this can be imposed by using the ordered function.
 ```{r}
@@ -143,7 +147,7 @@ The functions `sort` and `table` are helpful functions. In the above code relati
 ```{eval=F}
 sort(income)
 ```
-## Lists  ##
+## Lists ##
 
 The `character`, `numeric` and `logical` data types and the associated data classes described above all contain elements that must all be of the same basic type. Lists do not have this requirement. Lists have slots for different elements and can be considered as *an ordered collection of elements*. A `list` allows you to gather a variety of different data types together in a single data structure and the *nth* element of a `lista is denoted by double square brackets.
 ```{r}
@@ -169,7 +173,7 @@ lapply(tmp.list, length)
 ```
 Note that the length of a matrix, even when held in a list, is the total number of elements.
 
-## Defining your own classes  ##
+## Defining your own classes ##
 
 In R it is possible to define your own data type and to associate it with specific behaviours, such as its own way of printing and plotting / drawing. For example, later the `plot` function is used to draw maps for spatial data objects. This is because a variant of the function `plot` has been defined for the `SpatialPolygon/Point/Line` classes of objects and R applies this function when these objects are passed to it. 
 
@@ -197,7 +201,7 @@ You can see that R knows to use a different print function if the argument is a 
 print(unclass(employee))
 ```
 
-# Very important point  # 
+# Very important point # 
 
 The ability to define different classes of variable in R is a very important property: many packages or libraries define specific classes. A key example is the package `sp`. This defines a number of class of variables that relate to commonly used spatial data formats. You may have to install this package if you have not used it before:
 `install.packages("sp", dep = TRUE)`. Some of the more commonly used classes defined in `sp` are listed in the table below.
@@ -239,11 +243,11 @@ new.blcoks <- readShapePoly("blocks.shp")
 ```
 You should examine the `readShapeLines`, `readShapePoints`, `readShapePoly` functions and their associated `write` functions. You should also note that R is able to read and write other proprietary spatial data formats, which you should be able to find through a search of the R help system or via an internet search engine. 
 
-# Self-Test Questions Part 1 # 
+# Self-Test Questions Part 1# 
 
 Below are a number of self-test questions. In contrast to the previous sections where the code is provided in the text for you to work through (i.e. you to enter and run yourself), the Self-Test Questions are tasks for you to complete, mostly requiring you to write R code. Answers to them are provided later in this document. The self-test questions relate to the main data types that have been introduced: `factors`, `matrices`, `lists` (named and unnamed) and `classes`.
 
-## Factors ##
+##Factors##
 Recall from the descriptions above that factors are used to represent categorical data - where a small number of categories are used to represent some characteristic in a variable. For example the colour of a particular model of car sold by a showroom in a week can be represented using factors:
 ```{r, eval=F}
 colours <- factor(c("red","blue","red","white",
@@ -406,7 +410,7 @@ The aim of 2nd part of this worksheet is to  introduce some basic programming pr
 * Control loops in different ways using if, else, repeat, logical operators, etc 
 * Create  functions, test them and to make them universal
 
-## Condition Statements ##
+## Condition Statements##
 Consider the variable below: 
 ```{r, eval=T}
 student.heights <- c(1.38,1.61,1.67,1.52,1.32, 1.88, 1.94)
