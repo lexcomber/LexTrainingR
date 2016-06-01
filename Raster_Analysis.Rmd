@@ -1,0 +1,353 @@
+---
+title: "Introduction to Raster"
+author: "Lex Comber"
+date: "May 2016"
+output: pdf_document
+---
+# Introduction
+
+In this exercise you will explore raster data, initially using the `volcano` dataset, and introducing some 3D graphics. This exercise will: 
+
+- Introduce some of the raster data and classes in R 
+- Perform some simple raster operations with `raster` data 
+- Develop some raster to vector operations 
+- Class conversions and aggregation with raster 
+
+# Raster Data
+The are many classes of raster data in R. The `raster` package is very useful and defines a data class called `raster` but `sp` includes some raster related classes as well: `SpatialPixelsDataFrame` and SpatialGridDataFrame`. These will be illustrated using the `volcano` and `meuse` datasets. The volcano data is of the Maunga Whau in New Zealand, the Meuse data describes a flood plain of the river Meuse in the Netherlands. Both are standard datasets in R. 
+
+The code below loads some packages and loads the data.
+```{r, eval = T, message=FALSE}
+library(GISTools) 
+library(raster) 
+library(rgl)
+# load some data and check the class
+data(volcano); class(volcano)
+data(meuse.grid); class(meuse.grid)
+```
+If you are interested you can explore the help for these datasets:
+```{r, eval= F}
+?volcano
+?meuse.grid
+```
+
+The volcano data can be plotted using the `image` function - note the specification of `x` and `y`:
+```{r}
+x <- 10*(1:nrow(volcano))
+y <- 10*(1:ncol(volcano))
+image(x, y, volcano, col = terrain.colors(100), 
+      axes = FALSE, ylab = "", xlab = "", asp = 1)
+contour(x, y, volcano, levels = seq(90, 200, by = 5),
+        add = TRUE, col = "peru")
+box()
+title(main = "Maunga Whau Volcano", font.main = 4)
+```
+
+The data class of `volcano` is a `matrix`, with implicit coordinates in the structure of the matrix. This can be converted to both `raster` and `SpatialPixelsDataFrame` objects:   
+```{r}
+# SpatialPixelsDataFrame
+# use expand.grid to create coordinates
+coords.xy <- expand.grid(x = x, y = y)
+# then use these and as.vector to create the SPDF 
+volc.spdf <- SpatialPixelsDataFrame(coords.xy, 
+  data = data.frame(heigh = as.vector(volcano)))
+```
+The same plotting functions can be used on this `SpatialPixelsDataFrame`:
+```{r, eval=T}
+image(volc.spdf, col = topo.colors(100), asp = 1, 
+      axes = FALSE, ylab = "", xlab = "")
+contour(volc.spdf, levels = seq(90, 200, by = 5),
+        add = TRUE, col = "peru")
+```
+
+And the `raster` class, this time using the `meuse` data. This is first converted to a `SpatialPointsDataFrame`, then a `SpatialPixelsDataFrame` using the `as` function, and finally to `raster`:
+
+```{r,eval=T}
+# load the meuse.grid data 
+data(meuse.grid)
+class(meuse.grid)
+# create a SpatialPixelsDataFrame object
+coordinates(meuse.grid) <- ~x+y
+class(meuse.grid)
+meuse.grid <- as(meuse.grid, "SpatialPixelsDataFrame") 
+class(meuse.grid)
+# create 3 raster layers
+r1 <- raster(meuse.grid, layer = 3) #dist
+r2 <- raster(meuse.grid, layer = 4) #soil
+r3 <- raster(meuse.grid, layer = 5) #ffreq
+```
+With the raster layers, the usual raster operations can be undertaken. So for example, to  identify the locations that are half of the maximum distance away from the Meuse river, have a soil class of 1 (calcareous weakly developed meadow soils, light sandy clay) and have a flooding frequency class of 3, (once in 50-years). The following logical operations can be used to do this:
+```{r,eval=T}
+r1.1 <- r1 > 0.5 
+r2.1 <- r2 >= 2 
+r3.1 <- r3 < 3
+```
+These produce rasters with logical, `TRUE` / `FALSE` data which can be combined to identify areas for which all 3 conditions are `TRUE`:
+```{r,eval=T}
+result <- r1.1 * r2.1 * r3.1 
+table(as.vector(result$layer))
+image(result, asp = 1, 
+      axes = FALSE, ylab = "", xlab = "")
+contour(result, levels = c(0,1),
+        add = TRUE, col = "black", lwd = 2)
+title("The result of a raster calculator operation")
+```
+
+## A little aside on 3D plotting
+There are some really nice 3D plotting functions for example in the `rgl` package which obviously don't reproduce well in a PDF document. But you might want to explore some of the functions that produce the figure below of the `volcano` data, shaded with `terrain.colors()`. Remember that the graphics can be rotated by clicking and dragging and they are also zoomable:
+```{r}
+library(rgl)
+z <- 2 * volcano # Exaggerate the relief
+x <- 10 * (1:nrow(z)) # 10 meter spacing (S to N)
+y <- 10 * (1:ncol(z)) # 10 meter spacing (E to W)
+zlim <- range(z)
+zlen <- zlim[2] - zlim[1] + 1
+colorlut <- terrain.colors(zlen,alpha=0) # height color lookup table
+col <- colorlut[ z-zlim[1]+1 ] # assign colors to heights for each point
+open3d()
+rgl.surface(x, y, z, color=col, alpha=0.75, back="lines")
+```
+\includegraphics[width=400pt]{volc_eg.png}
+
+The code below adds another surface to the graphic as shown in the next figure:
+```{r}
+colorlut <- heat.colors(zlen,alpha=1) # use different colors for the contour map
+col <- colorlut[ z-zlim[1]+1 ] 
+rgl.surface(x, y, matrix(1, nrow(z), ncol(z)),color=col, back="fill")
+```
+\includegraphics[width=400pt]{volc_eg2.png}
+
+Have a look at some of the others options in the worked examples at the bottom of the help files for the following functions
+```{r, eval=F}
+?persp3d
+example(persp3d)
+```
+
+# Vector and Raster Conversion
+
+The `raster` package contains  functions for converting from vector to raster formats: `rasterToPolygons` which converts to a `SpatialPolygonsDataFrame` object, and `rasterToPoints` which converts to a `matrix` object. These are illustrated in the code below. Notice how the original raster imposes a grid structure on the polygons that are created.
+## Polygons and Raster
+The US states data can be converted to a raster:
+```{r, eval=T, message=F, warning=F}
+# load some data and convert to raster
+data(tornados)
+# set up the raster, r
+r <- raster(nrow = 60 , ncols = 120, ext = extent(us_states)) 
+# convert polygons to raster, using an attribute
+r <- rasterize(us_states, r, "STATE_FIPS")
+plot(r)
+```
+
+These can be converted back to polygons:
+```{r, eval=T}
+plot(r)
+poly1 <- rasterToPolygons(r, dissolve = T)
+plot(poly1, add = T)
+```
+
+## Points and Raster
+The tornado point data can be converted to a raster: 
+```{r, eval=T}
+# set up the raster, r
+r = raster(nrow = 180, ncols = 360, 
+  ext = extent(us_states)) 
+# create a SpatialPoints variable
+t2 <- as(torn, "SpatialPoints")
+# define the raster 
+# NOTE the function to count the points in each cell
+r <- rasterize(t2, r, fun=sum)
+# set the plot extent by specifying the plot colour 'white'
+plot(r, col = "white")
+plot(us_states, add = T, border = "grey") 
+plot(r, add = T)
+```
+
+These can be converted back to points
+```{r, eval=T}
+points1 <- rasterToPoints(r)
+p <- as(r, 'SpatialPointsDataFrame')
+plot(p, col = "#FB6A4A4C", cex = 0.5)
+g <- as(r, 'SpatialGridDataFrame')
+x <- as(r, 'SpatialPixelsDataFrame')
+```
+And to illustrate the conversion the points, rasterized polygons and original polygons can be plotted: 
+```{r, eval=T}  
+plot(points1, col = "grey", axes = FALSE, xaxt='n', cex = 0.7, asp = 1)
+plot(us_states, border = "red", add = T, lwd = 2) 
+plot(poly1, lwd = 1.5, add = T) 
+```
+
+# Self-Test Question
+
+The exercises all use the meuse data. You are to undertake raster analysis, using reclass and logical operations to generate a fuzzy suitability map. The details are  below. Fuzzy suitability maps were first developed by Steve Carver here at Leeds in the early 1990s and are known variously in the literature as Multi-Criteria Analyses / Evaluations. 
+
+The way they work is as follows:
+
+- The problem constraints (factors) are defined
+- Data layers to represent each constrain are identified
+- These are manipulated such that they describe the degree to which each constraint is satisfied in each location
+- The manipulated layers are then combined typically using some kind of weighting to reflect the important (salience) of each layer to the overall problem solution 
+The result is a layer describing 'continuum of suitability' rather than Boolean suitability described in earlier sections to this worksheet. 
+
+## Problem
+The problem uses the meuse data once again. It is artificial but it serves to illustrate the generation of MCE with raster data in R.
+
+The aim is to identify the best land to build on the Meuse area. Best in this context relates to the following constraints or factors:
+
+- lowest flood risk
+- preference for land use that has already some kind of non-agricultural activity and no trees. The land use preference is as follows: Best (in no order) - home gardens, sport field, stable yard; Worst (in no order) - woods trees in pasture, tall fruit trees, low fruit trees; In between - everything else
+- low lead
+- low cadmium
+- higher elevation
+
+## Data
+You should explore the help for the `meuse` data to understand the data attributes and to determine which ones you want to use to describe your constraints.
+
+?meuse
+
+## Maniupluation
+
+You should rescale the all of the layer attributes to an interval to suit your analysis. eg [0,1], [0,100], [0,255]. Use consistent intervals for each layer. 
+
+Qualitative variables have to be converted to numeric ones. For example, the land use class could be rescaled as follows:
+
+```{r, eval=T}  
+# Create a lookup table
+data(meuse)
+old.class <- c("Aa", "Ab", "Ag", "Ah", "Am", "B", "Bw", 
+  "DEN" , "Fh", "Fl", "Fw", "Ga", "SPO", "STA", "Tv", "W")
+new.class <- c(2, 2, 2, 2, 2, 3, 3, 0, 3, 3, 3, 1, 1, 1, 0, 2)
+landuse.lookup <- cbind(old.class, new.class)
+# match old and new values
+index <- match(meuse$landuse, landuse.lookup[,1])
+lu2 <- landuse.lookup[index,2]
+# get rid of an NAs
+lu2[is.na(lu2)] <- "0"
+# convert to numeric
+lu2 <- as.numeric(lu2)
+# rescale by the max: values in rage [0,1]
+lu2 <- lu2/max(lu2)
+```
+It is easier for the numeric variables
+```{r, eval=T} 
+cadmium2 <- meuse$cadmium / max(meuse$cadmium)
+cadmium2 <- 1- cadmium2
+```
+## Combination
+
+When you have all your rescaled values then you can combine them and convert the result to a raster dataset before mapping. So in the examples created so far the result would be, assuming equal salience / weighting for each factor:  
+
+```{r, eval=T}  
+result <- cadmium2 * lu2
+```
+Now convert the result to raster. The code below uses an interpolation algorithm to create a surface from the points in `muese`. We will return to these techniques later but you may have to install the `gstat` package`.
+
+```{r, eval=T}  
+library(gstat)
+data(meuse)
+# join the result to meuse
+meuse <- cbind(meuse, result)
+# now create a raster
+r <- raster(system.file("external/test.grd", package="raster"))
+# do a simple interpolation 
+res <- gstat(id = "result", formula = result~1, locations = ~x+y, data=meuse, 
+            nmax=7, set=list(idp = .5))
+res <- interpolate(r, res)
+# mask out the result
+res <- mask(res, r)
+# finally plot the result
+spplot(res)
+```
+
+So based on the 2 factors of land use and low cadmium all but some regions at the fringe of the study area are highly suitable! 
+
+
+# Answer to Self-Test Question
+The the `meuse` datasets has attributes for 155 locations (points). There are many ways to determine a risk / suitability surface, and we will describe some of these in later exercises, but the approach taken here is to generate an overall suitability measure for each of the 55 points and then to interpolate this to a surface as in the short worked example above.
+
+Stages in the analysis: 
+
+1. Constraints and Factors
+
+a. lowest flood risk
+```{r, eval=T}  
+library(sp)
+library(gstat)
+library(raster)
+data(meuse)
+f.risk <- meuse$ffreq
+```
+The help for the `meuse` dataset says that this variable describes 'flooding frequency class: 1 = once in two years; 2 = once in ten years; 3 = one in 50 years'. The attribute needs to be rescaled to reflect this.
+```{r, eval=T}  
+f.risk.lookup <- data.frame(old = c(1,2,3), new = c(2, 10, 50))
+index <- match(f.risk, f.risk.lookup[,1])
+f.risk <- f.risk.lookup[index,2]
+```
+Now rescale:
+```{r, eval=T}  
+f.risk <- f.risk/max(f.risk)
+```
+
+b. land use
+
+This can be done as above:
+```{r, eval=T}  
+old.class <- c("Aa", "Ab", "Ag", "Ah", "Am", "B", "Bw", 
+  "DEN" , "Fh", "Fl", "Fw", "Ga", "SPO", "STA", "Tv", "W")
+new.class <- c(2, 2, 2, 2, 2, 3, 3, 0, 3, 3, 3, 1, 1, 1, 0, 2)
+landuse.lookup <- cbind(old.class, new.class)
+# match old and new values
+index <- match(meuse$landuse, landuse.lookup[,1])
+l.use <- landuse.lookup[index,2]
+# get rid of an NAs
+l.use[is.na(l.use)] <- "0"
+# convert to numeric
+l.use <- as.numeric(l.use)
+# rescale by the max: values in rage [0,1]
+l.use <- l.use/max(l.use)
+```
+
+c. low lead
+```{r, eval=T} 
+lead <- meuse$lead / max(meuse$lead)
+# invert the value
+lead <- 1-lead
+```
+
+d. low cadmium
+```{r, eval=T} 
+cadmium <- meuse$cadmium / max(meuse$cadmium)
+# now invert this
+cadmium <- 1-cadmium
+```
+
+e. higher elevation
+```{r, eval=T} 
+elevation <- meuse$elev/max(meuse$elev)
+```
+
+2. Now combine the factors and rescale the result
+```{r, eval=T} 
+result <- f.risk * l.use * lead * cadmium * elevation
+result <- result / max(result)
+```
+
+3. Finally interpolate to a surface
+```{r, eval=T} 
+data(meuse)
+meuse <- cbind(meuse, result)
+# now create a raster
+r <- raster(system.file("external/test.grd", package="raster"))
+# do a simple interpolation 
+res <- gstat(id = "result", formula = result~1, locations = ~x+y, data=meuse, 
+            nmax=7, set=list(idp = .5))
+res <- interpolate(r, res)
+# mask out the result
+res <- mask(res, r)
+# finally plot the result
+spplot(res, main = "Overall Suitability")
+
+```
+
+
+# END
