@@ -49,12 +49,7 @@ install.packages("GISTools", dep = T)
 
 ```
 
-Code and data are provided and can be downloaded from XYZ-GITHUB url. You will find folders for each of the sessions that contain the data and code and the introductory materials: 
-
-- Introduction from XYZ-GITHUB 
-- GW framework from XYZ-GITHUB 
-- Mapping spatial accuracy from XYZ-GITHUB 
-- Additional materials from XYZ-GITHUB 
+Code and data are provided and can be downloaded from Lex Comber's github site [**here**](https://github.com/lexcomber/LexTrainingR/). You will a summary of the materials of the course.
 
 We hope that you enjoy this day and that you find that you find it useful. 
 
