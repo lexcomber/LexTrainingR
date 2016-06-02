@@ -1,7 +1,7 @@
 # Lex Training R
 Materials developed and used for various R training courses based on this book: https://goo.gl/Lia9cI
 
-The documents were created using `RMarkdown` in `RStudio` as PDFs. Unfortunately, the `RMD` files that create lovely PDFs do not always create nice html files using the Github compilation. So for example, equations in the `html` files still have the latex code, maps are not produced, etc. 
+The documents were created using `RMarkdown` in `RStudio` as PDFs. Unfortunately, the `RMD` files that create lovely PDFs do not always create nice `html` files using the Github compilation. So for example, equations in the `html` files still have the latex code, maps are not produced, etc. 
 
 **For these reasons** the original PDF files are included in a zip file for each of the courses. You can also download the RMD files from the repository above and create the PDFs yourself: you could right click on the links below, save the `.RMD` files, open them in RStudio and click on the `Knit PDF` icon.
 
