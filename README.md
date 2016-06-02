@@ -1,6 +1,16 @@
 # Lex Training R
 Materials developed and used for various R training courses based on this book: https://goo.gl/Lia9cI
 
+## Spatial Analysis of (Remote Sensing) Accuracy with GW frameworks 
+This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris as one of the Spatial Accuracy 2016 Conference workshops. The workshop included the following sessions:
+
+1. [Introduction](https://github.com/lexcomber/LexTrainingR/blob/master/Introduction.Rmd)
+2. GW framework
+3. Mapping spatial accuracy
+4. Additional materials 
+
+
+
 ## The Intermediate R course 
 This was delivered in Leeds in May 2016 by Robin Lovelace and Lex Comber and included the following modules developed by Lex Comber:
 
