@@ -2,7 +2,7 @@
 title: "Introduction"
 author: "Lex Comber"
 date: "June 2016"
-output: html_document
+output: pdf_document
 ---
 
 # Introduction
