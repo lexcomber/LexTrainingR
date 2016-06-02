@@ -1,0 +1,165 @@
+---
+title: "GW framework"
+author: "Lex Comber"
+date: "June 2016"
+output: pdf_document
+---
+
+# Geographically Weighted Approaches
+
+The previous exercise outlined how statistical approaches (logistic regression / Generalized Linear Models) could be used to generate probabilities of the User, Producer and Overall accuracy. These models are aspatial and because they consider all of the data in the study area they are referred to as *Global* models.
+
+It is now possible to consider the geographically weighted extensions to these models (Brunsdon et al. 1996). They are similar in form to ordinary regression, but geographically weighted approaches use a moving window or kernel under which local regression models are computed at locations throughout the study area. 
+
+To create GW models equations 2-4 in the previous exercise were extended in the following way:
+$$P(Ao = 1) = logit(b_{0(u_i, v_i)})    (eqn 1) $$ 
+$$P(y_i = 1) = logit(b_{0(u_i, v_i)} + b_1x_{1(u_i, v_i)}    (eqn 2) $$
+$$P(x_i = 1) = logit(b_{0(u_i, v_i)} + b_1y_{1(u_i, v_i)}    (eqn 3) $$
+
+where $P(Ao = 1)$ is the overall accuracy probability at location $i$, $x_1$ and $y_1$ are the classified and reference data, respectively, and $(u_i, v_i)$ is a vector of two-dimensional coordinates describing the location of i over which the coefficient estimates are assumed to vary. Thus, GW models are *local*: they are spatial dis-aggregations of *global* models and their outputs are location specific. 
+
+Critical to the operation of GW models is a moving window or kernel. The kernel moves through the study area (for example to cells in a predefined grid) and at each location computes a local model. It uses data under the kernel to construct a (local) model at that location with data weighted points further away from the kernel centre contributing less to the solution. Hence the *weighted* element in the GW framework. Thus, the kernel defines the data and weights that are used to calibrate the model at each location. The weight, $w_i$, associated with each location $(u_i, v_i)$ is a decreasing function of $d_i$, the distance from the centre of the kernel to $(u_i, v_i)$:
+
+Here, the bandwidth was selected to include the nearest 15% of the data points - see the code and detail of this below.
+
+# GW models in R
+There are a number of packages that support geographically weighted analyses in R, including `spgwr`, `GWmodel`, `gwrr` and `McSpatial`. `GWmodel` is curated and supported by the original GWR team but `spgwr` is used here.  
+
+Gollini at al (2013) provide an overview of geographically weighted approaches and provide a thorough treatment demonstrate their use, including the steps of model selection, bandwidth / kernel size optimisation, GW PCA, handling collinearity etc. The next sections deal with these stages in turn.
+
+## Set up
+The code below loads the packages, the data and creates a `SpatialPointsDataFrame` variable for use as input to the GW generalized regression to determine overall accuracy:
+
+```{r eval=T,  message=F, warning=F}
+library(GISTools)
+# library(GWmodel)
+library(spgwr)
+library(repmis)
+source_data("http://github.com/lexcomber/LexTrainingR/blob/master/SpatialAccuracy.RData?raw=True")
+# have a look at the data
+ls()
+```
+
+Now create a variable indicating where the Field data / class is equal to the Classified data / class: 
+
+```{r eval=T,  message=F, warning=F}
+res <- vector(length = dim(data)[1])
+for (i in 1: dim(data)[1]) {
+	if (data$Boolean_RS[i] == data$Boolean_FS[i]) {
+		res[i] <- 1
+	}}
+res.spdf <- SpatialPointsDataFrame(coords = data[,2:3], data = data.frame(res))
+```
+
+We also need to define the a logit function:
+```{r eval=T,  message=F, warning=F}
+alogit <- function(x){exp(x)/(1+exp(x))}
+```
+
+In this case we want to calculate ;local models at each location on a 1km grid. This is crwated and mapped in the code below: 
+```{r eval=T}
+grid <- SpatialPoints(expand.grid(x=seq(295000,363000,by=1000),
+  y=seq(3610000,3646000,by=1000)))
+plot(grid, cex = 0.7, col = "grey")
+plot(res.spdf, add = T, pch = 1, col = "#25252580")
+```
+
+## Bandwidth specification
+
+It is important to select the correct bandwidth or kernel size. Too small and the results will be too heterogeneous, too large and any local variation will be smoothed out. There are a number of bandwidth selection functions in `GWmodel` and the one for GW GLMs is `bw.ggwr`. One of the  inputs it requires is a distance matrix, describing the distance between the data points.
+
+```{r eval=T, results='hide', warning=F, message=F}
+#d.mat <- gw.dist(coordinates(res.spdf), coordinates(res.spdf))
+#bw <- bw.ggwr(res~1, data = res.spdf, kernel = "bisquare", 
+#  adaptive = TRUE, approach = "CV", dMat = d.mat) 
+bw <- ggwr.sel(res~1, data = res.spdf,adapt = T, family= binomial, verbose = F)
+```
+```{r eval=T}
+bw
+```
+In this case the value is 1.00 / 209 suggesting that **all** of the data should be used at each location! Harry will explain the reasons for this. 
+So for pragmatism, the bandwidth was set to 0.15 to ensure that for each local model the nearest 3 of the data points were included:
+```{r eval=T, message = F}
+bw = 0.15
+```
+
+# Running the GW model: overall Accuuracy
+
+Then the GW model can be used to generate coefficient estimates at each location which can be used to generate overall accuracy probabilities:
+
+```{r eval=T, results='hide', warning=F, message=F}
+# gw.mod <- gwr.generalised(res~1, data = res.spdf, grid, bw = bw, 
+#  family ="poisson", kernel="bisquare",adaptive=T)
+# NB the ggwr will return warnings for logistic regression - ignore them
+gwr.mod <- ggwr(res~1, data = res.spdf, adapt = bw, fit.points = grid, family= binomial) 
+gwr.ov <- alogit(data.frame(gwr.mod$SDF)[,2])# Compute local pr(u=1) ##Final
+```
+
+```{r eval=T, echo=F}
+choro.legend2 <- function (px, py, sh, under = "under", over = "over", between = "to", 
+    fmt = "%g", ...) 
+{
+    x = sh$breaks
+    lx = length(x)
+
+    res = character(lx + 1)
+    res[1] = paste(under, sprintf(fmt, x[1]))
+    for (i in 1:(lx - 1)) res[i + 1] <- paste(sprintf(fmt, x[i]), 
+        between, sprintf(fmt, x[i + 1]))
+    res[lx + 1] <- paste(over, sprintf(fmt, x[lx]))
+    maxwidth <- max(strwidth(res))
+    temp <- legend(x = px, y = py, legend = rep(" ", length(res)), 
+        fill = sh$cols, text.width = maxwidth, ...)
+    text(temp$rect$left + temp$rect$w, temp$text$y, res, pos = 2)
+}
+```
+## Mapping the outputs ## 
+The results show only a small amount variation: 
+```{r eval=T, message = F}
+summary(gwr.ov)
+```
+But these can still be mapped
+```{r eval=T, message = F}
+summary(gwr.ov)
+gwr.res <- gwr.ov
+shades = auto.shading(gwr.res, n=5,cols=brewer.pal(5,"Greens"),cutter=rangeCuts, digits = 2)
+#shades$breaks = c(0.4,0.5,0.6); names(shades$breaks) <- c("#1", "#2", "#3")
+gwr.res = SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.res))
+par(mar = c(0,0,0,0))
+level.plot(gwr.res,shades)
+lib.masker = poly.outer(gwr.res, lib, extend = 100)
+add.masking(lib.masker) 
+plot(lib, add = T)
+x <- 300000 
+y <- 3640000
+choro.legend2(x-3000, y+10000,shades) 
+#map.scale(x+3000,y-4000, l = 10000, "km", ndivs = 2, subdiv =5)
+#north.arrow(x+3000, y-1500, 700, lab = "N", col = "lightgrey")
+```
+
+# Running the GW model part 2: User and Producer Accuracies
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
