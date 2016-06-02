@@ -2,7 +2,7 @@
 Materials developed and used for various R training courses based on this book: https://goo.gl/Lia9cI
 The documents were created using `RMarkdown` in `RStudio` as PDFs. Unfortunately, the `RMD` files that create lovely PDFs do not always create nice html files using the Github compilation. So for example, equations still have the latex code in the html, maps are not produced in the html etc. 
 
-**For these reasons** the original PDF files are included in a zip file for each of the courses. You can also download the RMD files from the repository above.
+**For these reasons** the original PDF files are included in a zip file for each of the courses. You can also download the RMD files from the repository above and create the PDFs yourself: you could right click on the links below, save the `.RMD` files, open them in RStudio and click on the `Knit PDF` icon.
 
 ## Spatial Analysis of (Remote Sensing) Accuracy with GW frameworks 
 This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris as one of the Spatial Accuracy 2016 Conference workshops. The workshop included the following sessions:
@@ -13,8 +13,7 @@ This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris
 3. Mapping spatial accuracy
 4. Additional materials 
 
-If you want the PDFs that include the maps and plots, then a zip file of the PDFs is [here](https://github.com/lexcomber/LexTrainingR/blob/master/The%20Intermediate%20R%20course%20PDFs.zip) *or* if you wanted to create the PDFs yourself, you could right click on the links above, save the `.RMD` files, open them in RStudio and click on the `Knit PDF` icon.
-
+The PDFs that include the maps and plots, then a zip file of the PDFs is [here](https://github.com/lexcomber/LexTrainingR/blob/master/Spatial_Analysis_Accuracy_PDFs.zip).
 
 
 ## The Intermediate R course 
