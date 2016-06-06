@@ -5,19 +5,19 @@ date: "June 2016"
 output: pdf_document
 ---
 
-# Overview #
+# Overview
 
 This workshop is structured as follows:
 
-- 09h15-10h45  Introduction and Computer practical
+- 09h15-10h45 Introduction & GW framework and Computer practical
 - 10h45-11h00 Coffee break 
-- 11h00-12h30  GW framework and computer practical
+- 11h00-12h30 Mapping spatial accuracy and computer practical
 - 12h30-14h00 Lunch break 
-- 14h00-15h30  Mapping spatial accuracy and computer practical
+- 14h00-15h30 Putting it all together (loops, functions) and computer practical
 - 15h30-15h45 Coffee break 
 - 15h45-17h15 Additional materials and computer practical support 
 
-Each session will include a short introduction (some slides by Lex or Harry), followed by some partipant coding. 
+Each session will include a short introduction (some slides by Lex or Harry), followed by some participant coding. 
 
 The workshop main aim is get you thinking a bit more like a geographer. It draws from the plethora of methods for analysing point data many of which were developed within the domain of *quantitative social geography* and explores their application to observations about land cover. The fundamental theme that it promotes is that *Space is Special*. Through a series of illustrative analyses it argues that location, *latitude* and *longitude* or *easting* and *northing*, cannot be treated as just another variable. Specifically, the workshop encourages those interested in remote sensing and land cover scientists to wear 'geography goggles' through which to view the world. These promote a view of the world in which the wearer: 
 
@@ -34,9 +34,9 @@ COMBER, A., FISHER, P.F., BRUNSDON, C. and KHMAG, A., 2012, Spatial analysis of 
 
 COMBER A.J., 2013. Geographically weighted methods for estimating local surfaces of overall, user and producer accuracies. *Remote Sensing Letters*, 4(4): 373-380 
 
-The last of this is avauilable at this location `from XYZ-GITHUB` and provides an thorough intorction to the materials covered in this practical. 
+The last of this is available at this location `from XYZ-GITHUB` and provides an thorough introduction to the materials covered in this practical. 
 
-# Practicalities #
+# Practicalities
 Before we start you should do the following : 
 
 - install R on your computer R which an be downloaded from CRAN at `https://cran.r-project.org`
@@ -44,13 +44,23 @@ Before we start you should do the following :
 - you should use the code below to install a number of `packages` or `libraries` 
 
 ```{r eval=FALSE}
-install.packages("GWModel", dep = T)
+install.packages("spgwr", dep = T)
 install.packages("GISTools", dep = T)
-
+install.packages("repmis", dep = T)
 ```
 
-Code and data are provided and can be downloaded from Lex Comber's github site [**here**](https://github.com/lexcomber/LexTrainingR/). You will a summary of the materials of the course.
+Code and data are provided and can be downloaded from Lex Comber's github site [https://github.com/lexcomber/LexTrainingR/](https://github.com/lexcomber/LexTrainingR/). You will a summary of the materials of the course.
 
+# Tips
+For efficient R coding and learning it helps if you: 
+
+1. Keep your code in scripts, typically saved with a `.R` extension and a file name that has some meaning (eg `WorkshpPt1.R')
+2. Annotate your scripts with comments to help you remember what you have done when you come back to a piece of code that you wrote a few years ago. Annotations starts with `#` and you should use them freely. Every after the `#` is not read by R
+3. Use the shortcuts in RStudio and R for running code - highlight cmd / ctrl `Return` in R for example
+4. Use the massive amounts of online help that is available via RBloggers [http://www.r-bloggers.com](http://www.r-bloggers.com) and StackOverFlow [http://stackoverflow.com/questions/tagged/r](http://stackoverflow.com/questions/tagged/r)
+5. Copy and modify code where you can - the standard rules of plagiarism do not apply, although acknowledgements and licensing are important
+
+# Finally....
 We hope that you enjoy this day and that you find that you find it useful. 
 
 Lex and Harry

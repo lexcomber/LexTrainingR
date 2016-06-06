@@ -91,33 +91,11 @@ Then the GW model can be used to generate coefficient estimates at each location
 # gw.mod <- gwr.generalised(res~1, data = res.spdf, grid, bw = bw, 
 #  family ="poisson", kernel="bisquare",adaptive=T)
 # NB the ggwr will return warnings for logistic regression - ignore them
-gwr.mod <- ggwr(res~1, data = res.spdf, adapt = bw, fit.points = grid, family= binomial) 
-gwr.ov <- alogit(data.frame(gwr.mod$SDF)[,2])# Compute local pr(u=1) ##Final
-```
-In this case the `choro.legend` function has to be modified to cope with the relatively narrow range of values. the `choro.legend2` function is defined below. But remember that you can inspect the form of any function by entering it without brackets and arguments:
-```{r eval=F}
-choro.legend
+gwr.mod <- ggwr(res~1, data = res.spdf, adapt = bw, 
+  fit.points = grid, family= binomial) 
+gwr.ov <- alogit(data.frame(gwr.mod$SDF)[,2])# Compute local P(Ao=1)
 ```
 
-The `choro.legend2`  function is defined as follows:
-```{r eval=T, echo=T}
-choro.legend2 <- function (px, py, sh, under = "under", over = "over", between = "to", 
-    fmt = "%g", ...) 
-{
-    x = sh$breaks
-    lx = length(x)
-
-    res = character(lx + 1)
-    res[1] = paste(under, sprintf(fmt, x[1]))
-    for (i in 1:(lx - 1)) res[i + 1] <- paste(sprintf(fmt, x[i]), 
-        between, sprintf(fmt, x[i + 1]))
-    res[lx + 1] <- paste(over, sprintf(fmt, x[lx]))
-    maxwidth <- max(strwidth(res))
-    temp <- legend(x = px, y = py, legend = rep(" ", length(res)), 
-        fill = sh$cols, text.width = maxwidth, ...)
-    text(temp$rect$left + temp$rect$w, temp$text$y, res, pos = 2)
-}
-```
 ## Mapping the outputs ## 
 The results show only a small amount variation: 
 ```{r eval=T, message = F}
@@ -125,30 +103,23 @@ summary(gwr.ov)
 ```
 But these can still be mapped
 ```{r eval=T, message = F}
-summary(gwr.ov)
-gwr.res <- gwr.ov
-shades = auto.shading(gwr.res, n=5,cols=brewer.pal(5,"Greens"),
- cutter=rangeCuts, digits = 2)
-#shades$breaks = c(0.4,0.5,0.6); names(shades$breaks) <- c("#1", "#2", "#3")
-gwr.res = SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.res))
+shades = auto.shading(gwr.ov, cols=brewer.pal(4,"Greens"))
+gwr.res = SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.ov))
 par(mar = c(0,0,0,0))
 level.plot(gwr.res,shades)
 lib.masker = poly.outer(gwr.res, lib, extend = 100)
 add.masking(lib.masker) 
 plot(lib, add = T)
-x <- 300000 
-y <- 3640000
-choro.legend2(x-3000, y+10000,shades) 
-#map.scale(x+3000,y-4000, l = 10000, "km", ndivs = 2, subdiv =5)
-#north.arrow(x+3000, y-1500, 700, lab = "N", col = "lightgrey")
+choro.legend(297000, 3650000,shades) 
 ```
+
 # Summary
 
-In this section you been introduced to the basics of Geographically Weighted approaches and how they can be applied to validation data that are typically collected to generate *a*spatial or *global* accuracy measures. The GW framework constructs *local* models and allows spatially distributed measures of accuracy to be generated. In the next section you will User and producer measures of accuracy and create some functions to automatically map the results. 
+In this section you been introduced to the basics of Geographically Weighted approaches and how they can be applied to validation data that are typically collected to generate *a*spatial or *global* accuracy measures. The GW framework constructs *local* models and allows spatially distributed measures of accuracy to be generated. In the next section you will User and producer measures of accuracy and map the results. 
 
 
 # References
-Brunsdon, C.F., Fotheringham, A.S. and Charlton M. (1996). Geographically Weighted Regression - A Method for Exploring Spatial Non-Stationarity, *Geographic Analysis*, 28, 281-298.
+Brunsdon, C.F., Fotheringham, A.S. and Charlton M. (1996). Geographically Weighted Regression - A Method for Exploring Spatial Non-Stationarity, *Geographic Analysis*, 28: 281-298.
 
 Gollini, I., Lu, B., Charlton, M., Brunsdon, C., and Harris, P. (2013). GWmodel: an R Package for Exploring Spatial Heterogeneity using Geographically Weighted Models. *arXiv preprint arXiv*:1306.0413.
 

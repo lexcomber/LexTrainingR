@@ -26,7 +26,7 @@ install.packages("GISTools", dep = T)
 install.packages("spgwr", dep = T)
 ```
 
-A zip file containing the data used in this practical can be downloaded from Lex Comber's GitHub site [**here**](https://github.com/lexcomber/LexTrainingR/blob/master/GW_Accuracy_Data.zip). You could save this to your working directory and the load it directly. You can also check your current directory using the `getwd()` function. 
+A zip file containing the data used in this practical can be downloaded from Lex Comber's GitHub site [**https://github.com/lexcomber/LexTrainingR/blob/master/GW_Accuracy_Data.zip**](https://github.com/lexcomber/LexTrainingR/blob/master/GW_Accuracy_Data.zip). You could save this to your working directory and the load it directly. You can also check your current directory using the `getwd()` function. 
 
 Then the packages can be called and the data can be loaded into R after you have set the working directory using the `setwd()` function. The example from my computer is below:
 ```{r eval=F}
@@ -54,9 +54,9 @@ head(data)
 
 This shows that the are a number of continuous and categorical variables. The first few columns of data indicate the ID (`PointID`) and the easting and northing of the data point.
 
-The next set of 5 variables (columns 4 to 8), all with the suffix '_FS' are the fuzzy memberships to the 5 land cover classes as recorded in the field (FS for *Field Survey*). Column 9 records the Boolean or crisp class observed in the field. It is useful to consider this as the *Observed* or *Reference* data.
+The next set of 5 variables (columns 4 to 8), all with the suffix `_FS` are the fuzzy memberships to the 5 land cover classes as recorded in the field (FS for *Field Survey*). Column 9 records the Boolean or crisp class observed in the field. It is useful to consider this as the *Observed* or *Reference* data.
 
-The third group of variables with the suffix "_RS" are the outputs from a *Remote Sensing* analysis using a Fuzzy Set classification (columns 10 to 14) with a Boolean / crisp class label in column 15. 
+The third group of variables with the suffix `_RS` are the outputs from a *Remote Sensing* analysis using a Fuzzy Set classification (columns 10 to 14) with a Boolean / crisp class label in column 15. 
 
 You will mainly be using the Boolean data in columns 9 and 15.
 
@@ -98,7 +98,15 @@ The table below shows the accuracy / confusion / error / validation matrix arisi
 So first, populate the correspondence matrix: 
 
 ```{r eval=T}
-tab <- table(data$Boolean_FS, data$Boolean_RS)
+tab <- table(data$Boolean_RS, data$Boolean_FS)
+```
+This generates a table of *Predicted* or *Classified* (rows) against *Observed* (columns). Have a look: 
+```{r eval=T}
+tab
+```
+
+This can be made more user-friendly by adding some class names ad some marginal totals:   
+```{r eval=T}
 class.names.long <- c("Bare", "Grazing", "Urban", "Vegetation", "Woodland") 
 rownames(tab) <- class.names.long
 colnames(tab) <- class.names.long
@@ -106,10 +114,13 @@ tab <- cbind(tab, rowSums(tab))
 tab <- rbind(tab, colSums(tab))
 rownames(tab)[6] <- "Total"
 colnames(tab)[6] <- "Total"
-tab <- t(tab) #transpose the table
+```
+Again have a look: 
+```{r eval=T}
+tab
 ```
 
-Then use the marginal totals and diagonals to determine user and producer accuracies. 
+Then the marginal totals and diagonals can be used to determine User and Producer accuracies - see Congalton (1991) for a full explanation - the paper can be downloaded from [http://uwf.edu/zhu/evr6930/2.pdf](http://uwf.edu/zhu/evr6930/2.pdf). 
 ```{r eval=T}
 # Users accuracy
 tmp <- vector(mode = "numeric", length = 6) 
@@ -162,14 +173,11 @@ for (i in 1: dim(data)[1]) {
 	if (data$Boolean_RS[i] == data$Boolean_FS[i]) {
 		res[i] <- 1
 	}}
-res.spdf <- SpatialPointsDataFrame(coords = data[,2:3], 
-  data = data.frame(res))
 # Then use a GLM to do a logistic regression
 mod0 <- glm(res~1,family= binomial) 
 mod.coefs <- mod0$coefficients
 mod.coefs[2] <-sum(mod.coefs) #logit ea+c
-mod.p.x.eq.1.g.y.eq.1 <- alogit(mod.coefs[2]) #n1
-mod.ov <- mod.p.x.eq.1.g.y.eq.1 
+mod.ov <- alogit(mod.coefs[2]) #n1
 cat("overall accuracy:", mod.ov)
 ```
 This seeks to predicts the degree to which the data is equal to 1.  
@@ -180,7 +188,7 @@ For *User* and *Producer* accuracies we need a different model. It is useful to 
 User accuracy can be estimated using a logistic regression to analyse the reference data against the classified data in the following way:
 $$P(y = 1) = logit(b_0 + b_1x_1)        (eqn 3)$$
 
-where $P(y = 1)$ is the probability that the reference land-cover class, $y$, is correctly predicted by the classified data, $x_1$, $b_0$ is the intercept term and $b_1$ is the slope. this generates the probability that the reference data equals 1, given that the classified data equals 1. 
+where $P(y = 1)$ is the probability that the reference land-cover class, $y$, is correctly predicted by the classified data, $x_1$, $b_0$ is the intercept term and $b_1$ is the slope. this generates the probability that the reference data is the class (i.e. is `TRUE` or `equals 1`), given that the classified data is the class (i.e. also `equals 1`). 
 
 The producer accuracy is estimated by inverting the response and explanatory variables:
 $$P(x = 1) = logit(b_0 + b_1y_1)    (eqn 4)$$
@@ -189,7 +197,7 @@ where $P(x = 1)$ is the probability that the classified land-cover class is corr
 For the example of grazing land the code to do this is as follows. Note that the first stage is to create the binary vectors `fs.class` and `rs.class` for denote the field survey and remote sensing classes: 
 ```{r eval=T}
 class.list <- unique(data$Boolean_RS)[order(unique(data$Boolean_RS))]
-# NB: i = 2 below speciifies Grazing Land - look at class.list 
+# NB: i = 2 below specifies 'G' for Grazing Land - look at class.list 
 # change i to analyse other classes 	
 i = 2
 class <- class.list[i]	
@@ -207,15 +215,13 @@ mod1 <- glm(fs.class~rs.class,data = fsrs,family= binomial)
 mod.coefs <- mod1$coefficients
 mod.coefs[2] <-sum(mod.coefs) 
 # P(x = 1|y = 1)
-mod.p.x.eq.1.g.y.eq.1 <- alogit(mod.coefs[2])
-mod.user <- mod.p.x.eq.1.g.y.eq.1 
+mod.user <- alogit(mod.coefs[2])
 cat("user accuracy:", round(mod.user, 3))
 # Producer - invert terms
 mod2 <- glm(rs.class~fs.class,data = fsrs,family= binomial) 
 mod.coefs <- mod2$coefficients
 mod.coefs[2] <-sum(mod.coefs) #logit ea+c
-mod.p.x.eq.1.g.y.eq.1 <- alogit(mod.coefs[2])
-mod.prod <- mod.p.x.eq.1.g.y.eq.1 
+mod.prod <- alogit(mod.coefs[2])
 cat("producer accuracy:", round(mod.prod, 3))
 ```
 

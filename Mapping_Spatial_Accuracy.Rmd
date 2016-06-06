@@ -1,0 +1,269 @@
+---
+title: "Mapping spatial accuracy"
+author: "Lex Comber"
+date: "June 2016"
+output: pdf_document
+---
+
+# Introduction
+
+In the last section you created a spatially distributed measure of overall accuracy. In this you created a variable that recorded whether the *observed* class in the field was the same as the class *predicted* by the classification algorithm. It recorded a series of `1`s and `0`s to indicate whether the classes matched or not. These were analysed using classic logistic regression (Generalized Linear Models) to get *a*spatial measures of accuracy and then using Geographically Weighted logistic Regression to generate spatially distributed measures.   
+
+In this section you will develop further measures of accuracy that are commonly used in remote sensing: User and Producer accuracies and an estimate of the Kappa statistic $\hat{\kappa}$, also known as k-hat. A full description of these can be found in the classic Congalton (1991) paper at [http://uwf.edu/zhu/evr6930/2.pdf](http://uwf.edu/zhu/evr6930/2.pdf).
+
+Again we will calculate these measures from first principles as probabilities and then develop  *geographically weighted* versions.
+
+# Data set up
+
+As before, you will need to load the data from he `github` resource
+```{r eval=T,  message=F, warning=F}
+library(GISTools)
+library(spgwr)
+library(repmis)
+source_data("http://github.com/lexcomber/LexTrainingR/blob/master/SpatialAccuracy.RData?raw=True")
+```
+And have a look at the what you have
+```{r eval=T}
+ls()
+head(data.frame(data))
+```
+
+And the code from the *Introduction* can be re-used to create the correspondence matrix
+
+```{r eval=T}
+tab <- table(data$Boolean_RS, data$Boolean_FS)
+class.names.long <- c("Bare", "Grazing", "Urban", "Vegetation", "Woodland") 
+rownames(tab) <- class.names.long
+colnames(tab) <- class.names.long
+tab <- cbind(tab, rowSums(tab))
+tab <- rbind(tab, colSums(tab))
+rownames(tab)[6] <- "Total"
+colnames(tab)[6] <- "Total"
+```
+Then as before, calculate User and Producer accuracies - you should have all of this code already!  
+```{r eval=T}
+# Users accuracy
+tmp <- vector(mode = "numeric", length = 6) 
+for (i in 1:5) {
+	tmp[i] <- tab[i,i] / tab[i,6]
+	}
+tab <- cbind(tab, zapsmall(tmp, 3))
+colnames(tab)[7] <- "Users"
+# Producers accuracy
+tmp <- vector(mode = "numeric", length = 7) 
+for (i in 1:5) {
+	tmp[i] <- tab[i,i] / tab[6,i]
+	}
+tab <- rbind(tab, zapsmall(tmp, 3))
+rownames(tab)[7] <- "Producers"
+```
+
+Calculate the overall accuracy:
+```{r eval=T}
+tab[7,7] <- sum(diag(table(data$Boolean_FS, 
+  data$Boolean_RS)))/sum(table(data$Boolean_FS, data$Boolean_RS))
+```
+and check the final table:
+```{r eval=T}
+round(tab, 2)
+```
+
+# Recap: User Accuracy
+So from the table in the `tab` variable you can see that for example Grazing land has a User Accuracy of `r round(tab[2,7], 3)`. User accuracy seeks to provide a measure of per-class accuracy that describes how probable it is that a pixel (or segmented object) of that has been labelled as *Grass* will actually be that class if it was visited in the field for example. It indicates the errors of commission (inclusion) and for the potential user of the map it indicates the probability of correctly finding the class indicated on the map present on the ground.
+
+User accuracies, as stated in the *Introduction* session, can be estimated using a logistic regression to analyse the reference data against the classified data in the following way:
+$$P(y = 1) = logit(b_0 + b_1x_1)      (eqn 1)$$
+
+where $P(y = 1)$ is the probability that the reference land-cover class, $y$, is correctly predicted by the classified data, $x_1$, $b_0$ is the intercept term and $b_1$ is the slope. this generates the probability that the reference data is the class (i.e. is `TRUE` or `equals 1`), given that the classified data is the class (i.e. also `equals 1`). 
+
+In the *Introduction* session you used a GLM (Generalized Linear Model) approach to calculate the probabilities associated with Grazing land User accuracy.
+
+Recall that the approach for User accuracy was as follows:
+
+1. for class `x`, create a `data.frame` containing: 
+a) the data locations where the remote sensing indicated class `x` [0 or 1]
+b) the data locations where the field visit indicated class `x` [0 or 1]
+2. construct a GLM of the extent to which the field class was predicted by the remote sensing class (*Observed* was predicted by *Predicted*)
+3. Manipulate the resulting coefficients (`sum` and the `alogit` function) to determine the User accuracy (remembering that User accuracy is $P(FS = 1|RS = 1)$
+
+The code for doing this is for the class of *Grazing Land* is repeated below: 
+```{r eval=T}
+# 1. Create a data.frame
+class.list <- unique(data$Boolean_RS)[order(unique(data$Boolean_RS))]
+# 'G' is for Grazing Land  
+class <- class.list[2]	
+# have a look!
+class
+# 1a where the RS indicated the class
+rs.class <- (data$Boolean_RS == class) * 1
+# 1b where the FS indicated the class
+fs.class <- (data$Boolean_FS == class) * 1
+# join together
+fsrs <- data.frame(cbind(fs.class,rs.class)) 
+```
+
+Construct the GLM:
+```{r eval=T}
+# 2. GLM for User Accuracy
+mod1 <- glm(fs.class~rs.class,data = fsrs,family= binomial) 
+```
+Now manipulate the coefficients: 
+```{r eval=T}
+# 3. Define and apply the alogit function 
+alogit <- function(x){exp(x)/(1+exp(x))}
+mod.coefs <- mod1$coefficients
+mod.coefs[2] <-sum(mod.coefs) 
+# P(y = 1|x = 1)
+mod.user <- alogit(mod.coefs[2])
+cat("user accuracy:", round(mod.user, 3))
+```
+
+# GW User Accuracy
+So the User accuracy is the probabilities arising from a GLM constructed from binary variables (i.e. containing `1`s and `0`s) describing whether the class was *observed* in the field (`fs.class`) and whether the class was *predcited* by the remote sensing classification (`rs.class`). In the global analysis all 210 data points were used to construct the model.
+
+Recall that in Geographically Weighted approaches, local models are constructed, in this case at each location on a grid shown below. The `fsrs` variable created above can be used to construct `SpatialPointsDataFrame` object using the coordinates in the `data` variable and used as input to the GW GLM function, `ggwr`:
+```{r eval=T}
+fsrs.spdf <- SpatialPointsDataFrame(coords = data[,2:3], 
+  data = data.frame(fsrs))
+grid <- SpatialPoints(expand.grid(x=seq(295000,363000,by=1000),
+  y=seq(3610000,3646000,by=1000)))
+plot(grid, cex = 0.7, col = "grey")
+plot(lib, add = T)
+plot(fsrs.spdf, add = T, pch = 1, col = "#25252580")
+```
+
+At each location, the data under the kernel are weighted by their distance to the kernel centre and used to construct a *local* GLM from which local probabilities such as User accuracy can be computed. In this case the nearest 15% of the data points are be used to construct a GLM at each location on the grid. Note that the kernel bandwidth can also be set as a distance. You should examine the help pages for the `ggwr` function to see the parameters that it takes.
+
+```{r eval=T}
+bw = 0.15	
+```
+The GW model can be constructed. Note the similarity in the parameters that the `glm` and `ggwr` functions take:  
+```{r eval=T,  message=F, warning=F}
+gwr.mod <- ggwr(fs.class~rs.class, data = fsrs.spdf, 
+  adapt = bw,fit.points=grid, family= binomial) 
+```
+
+You can examine the GW model (`gwr.mod`) and the SpatialDataFrame (SDF) of the GW model:
+```{r eval=T}
+gwr.mod
+head(data.frame(gwr.mod$SDF))
+```
+And the coefficients can be manipulated in the same way as before but this time from the `gwr.mod$SDF`:
+```{r eval=T}
+coefs <- data.frame(gwr.mod$SDF)[,2:3]
+coefs[,2] <- rowSums(coefs) 
+# P(x = 1|y = 1)
+gwr.user <- alogit(coefs[,2]) 
+```
+The spatial variation in the coefficients is indicated by the distribution of User accuracy values:
+```{r eval=T}
+summary(gwr.user)
+```
+
+Here we can see that there is evidence of considerable variation - compare the 1st and 3rd quartiles of the distribution. As for the Overall Accuracy in the last session, these can be mapped:
+```{r eval=T}
+shades = auto.shading(gwr.user, n=5,cols=brewer.pal(5,"Greens"),
+  cutter=rangeCuts, digits = 2)
+gwr.spdf = SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.user))
+par(mar = c(0,0,1,0))
+level.plot(gwr.spdf,shades)
+lib.masker = poly.outer(gwr.spdf, lib, extend = 100)
+add.masking(lib.masker) 
+plot(lib, add = T)
+choro.legend(297000, 3650000,shades) 
+title("User Accuracy: Grazing Land")
+```
+
+So the *global* measure of User accuracy was `r round(as.vector(mod.user), 3)` and *locally* this varies from `r round(summary(gwr.user)[2],3)` to `r round(summary(gwr.user)[5],3)`:
+
+```{r eval=T}
+# global
+round(as.vector(mod.user), 3)
+# local
+round(summary(gwr.user)[c(2,5)],3)
+```
+
+# Recap: Producer Accuracy
+So from the table in the `tab` variable you can see that for example Grazing land has a Producer Accuracy of `r round(tab[7,2], 3)`. Producer accuracy provides an estimate of the probability that a reference pixel is correctly labelled in the classified data. So for example, that a pixel labelled as *Grass* in the field will actually be that class in the data. It indicates the errors of omission (exclusion) and for the producer of the map it indicates the probability that the features of interest are omitted from the classified data. 
+
+Producer accuracies, as stated in the *Introduction* session, can be estimated using a logistic regression to analyse the reference data against the classified data in the following way:
+$$P(x = 1) = logit(b_0 + b_1y_1)    (eqn 2)$$
+where $P(x = 1)$ is the probability that the classified land-cover class is correctly predicted by the reference data, $y_1$, $b_0$ is the intercept term and $b_1$ is the slope. This generates the probability that the classified data is the class (i.e. is `TRUE` or `equals 1`), given that the reference data is the class (i.e. also `equals 1`).
+
+Again recall that in the *Introduction* session you used a GLM (Generalized Linear Model)  to calculate the probabilities associated with Grazing land Producer accuracy and the approach was as follows:
+
+1. for class `x`, create a `data.frame` containing: 
+a) the data locations where the remote sensing indicated class `x` [0 or 1]
+b) the data locations where the field visit indicated class `x` [0 or 1]
+2. construct a GLM of the extent to which the remote sensing class was predicted by the reference or field class (*Predicted* was predicted by *Observed*)
+3. Manipulate the resulting coefficients (`sum` and the `alogit` function) to determine the Producer accuracy (remembering that Producer accuracy is $P(RS = 1|FS = 1)$
+
+The code for doing this is for the class of *Grazing Land* is repeated below, with Step 1 having already been done for the User accuracy above so the GLM can be constructed:
+```{r eval=T}
+# 2. GLM for Producer Accuracy
+mod2 <- glm(rs.class~fs.class,data = fsrs,family= binomial) 
+```
+Now manipulate the coefficients: 
+```{r eval=T}
+# 3. Define and apply the alogit function 
+mod.coefs <- mod2$coefficients
+mod.coefs[2] <-sum(mod.coefs) 
+# P(x = 1|y = 1)
+mod.producer <- alogit(mod.coefs[2])
+cat("Producer accuracy:", round(mod.producer, 3))
+```
+
+# GW Producer Accuracy
+So the Producer accuracy is the probabilities arising from a GLM constructed from binary variables (i.e. containing `1`s and `0`s) describing whether the class was *predicted* in the remote sensing classification (`rs.class`) and whether the class was *observed* by the field (`fs.class`) . In the global analysis all 210 data points were used to construct the model.
+
+As for GW User accuracy, local models are constructed at each location on the grid using the 
+`fsrs.spdf` `SpatialPointsDataFrame` using the nearest 15% of the data points. The GW Producer model is as follows:
+```{r eval=T,  message=F, warning=F}
+gwr.mod <- ggwr(rs.class~fs.class, data = fsrs.spdf, 
+  adapt = bw,fit.points=grid, family= binomial) 
+```
+
+And again, you can examine the GW model (`gwr.mod`) and the SpatialDataFrame (SDF) of the GW model:
+```{r eval=T}
+gwr.mod
+head(data.frame(gwr.mod$SDF))
+```
+The coefficients can be manipulated in the same way as before:
+```{r eval=T}
+coefs <- data.frame(gwr.mod$SDF)[,2:3]
+coefs[,2] <- rowSums(coefs) 
+# P(x = 1|y = 1)
+gwr.producer <- alogit(coefs[,2]) 
+```
+The spatial variation in the coefficients is indicated by the distribution of User accuracy values:
+```{r eval=T}
+summary(gwr.producer)
+```
+Here there is less variation than for the User accuracy from the 1st and 3rd quartiles of the distribution and these can be mapped:
+```{r eval=T}
+shades = auto.shading(gwr.producer, n=5,cols=brewer.pal(5,"Blues"),
+  cutter=rangeCuts, digits = 2)
+gwr.spdf = SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.user))
+par(mar = c(0,0,1,0))
+level.plot(gwr.spdf,shades)
+lib.masker = poly.outer(gwr.spdf, lib, extend = 100)
+add.masking(lib.masker) 
+plot(lib, add = T)
+choro.legend(297000, 3650000, shades) 
+title("Producer Accuracy: Grazing Land")
+```
+
+So the *global* measure of Producer accuracy was `r round(as.vector(mod.producer), 3)` and *locally* this varies from `r round(summary(gwr.user)[2],3)` to `r round(summary(gwr.producer)[5],3)`:
+
+```{r eval=T}
+# global
+round(as.vector(mod.producer), 3)
+# local
+round(summary(gwr.producer)[c(2,5)],3)
+```
+
+# Summary
+
+In this section you have applied Geographically Weighted approaches to generated *local* models of user, producer and Overall accuracies. These spatially distributed measures can be mapped. In the next section you will create develop some code to automate these operations in functions.
+
+
