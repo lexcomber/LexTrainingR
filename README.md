@@ -6,15 +6,25 @@ The documents were created using `RMarkdown` in `RStudio` as PDFs. Unfortunately
 **For these reasons** the original PDF files are included in a zip file for each of the courses. You can also download the RMD files from the repository above and create the PDFs yourself: you could right click on the links below, save the `.RMD` files, open them in RStudio and click on the `Knit PDF` icon.
 
 ## Spatial Analysis of (Remote Sensing) Accuracy with GW frameworks 
-This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris as one of the Spatial Accuracy 2016 Conference workshops. The workshop included the following sessions:
+This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris as one of the Spatial Accuracy 2016 Conference workshops. The workshop includes the following sessions:
 
 0. [Overview](https://github.com/lexcomber/LexTrainingR/blob/master/overview.Rmd)
 1. [Introduction](https://github.com/lexcomber/LexTrainingR/blob/master/Introduction.Rmd)
 2. [GW framework](https://github.com/lexcomber/LexTrainingR/blob/master/GW_framework.Rmd)
-3. Mapping spatial accuracy
-4. Additional materials 
+3. [Mapping Spatial Accuracy](https://github.com/lexcomber/LexTrainingR/blob/master/Mapping_Spatial_Accuracy.Rmd)
+4. [Putting it all Together](https://github.com/lexcomber/LexTrainingR/blob/master/Putting_it_all_together.Rmd)
+5. Additional materials - TBC
+
+At the momement these scripts generate spatially distributed measures of Overall, User and Producer accuracies in the manner of Comber *et al* 2012 and Comber 2013. 
+
+Descriptions of how to generate geographically weighted estimate of the Kappa statistic $\hat{\kappa}$, also known as k-hat, will be included in the the *Mapping Spatial Aaccuacy* practical in due course.
 
 The PDFs that include the maps and plots are in a zip file  [**here**](https://github.com/lexcomber/LexTrainingR/blob/master/Spatial_Analysis_Accuracy_PDFs.zip).
+
+###References
+Comber A, Fisher PF, Brunsdon C and Khmag A (2012). Spatial analysis of remote sensing image classification accuracy. *Remote Sensing of Environment*, 127: 237–246.
+
+Comber AJ (2013). Geographically weighted methods for estimating local surfaces of overall, user and producer accuracies. *Remote Sensing Letters*, 4: 373-380.
 
 
 ## The Intermediate R course 
