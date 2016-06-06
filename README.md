@@ -22,7 +22,7 @@ Descriptions of how to generate geographically weighted estimate of the Kappa st
 The PDFs that include the maps and plots are in a zip file  [**here**](https://github.com/lexcomber/LexTrainingR/blob/master/Spatial_Analysis_Accuracy_PDFs.zip).
 
 ###References
-Comber A, Fisher PF, Brunsdon C and Khmag A (2012). Spatial analysis of remote sensing image classification accuracy. *Remote Sensing of Environment*, 127: 237–246.[**link**](https://github.com/lexcomber/LexTrainingR/blob/master/Comber_RSL_2013.pdf)
+Comber A, Fisher PF, Brunsdon C and Khmag A (2012). Spatial analysis of remote sensing image classification accuracy. *Remote Sensing of Environment*, 127: 237–246. [**link**](https://github.com/lexcomber/LexTrainingR/blob/master/Comber_RSL_2013.pdf)
 
 Comber AJ (2013). Geographically weighted methods for estimating local surfaces of overall, user and producer accuracies. *Remote Sensing Letters*, 4: 373-380. [**link**](https://github.com/lexcomber/LexTrainingR/blob/master/comber_fisher_brunsdon_khmag_RSE_2012.pdf)
 
