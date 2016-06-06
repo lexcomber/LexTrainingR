@@ -1,0 +1,305 @@
+---
+title: "Putting it all Together"
+author: "Lex Comber"
+date: "June 2016"
+output: pdf_document
+---
+
+# Data set up
+
+As before, you will need to load the data from he `github` resource
+```{r eval=T,  message=F, warning=F}
+library(GISTools)
+library(spgwr)
+library(repmis)
+source_data("http://github.com/lexcomber/LexTrainingR/blob/master/SpatialAccuracy.RData?raw=True")
+```
+And have a look at the what you have
+```{r eval=T}
+ls()
+head(data.frame(data))
+```
+
+# Putting it all together with Loops and Functions
+
+So far we have examined overall accuracy and per class User and Producer accuracies individually, showing the original *aspatial* or *global* measure, and then a summary of the distribution of the related *geographically weighted* values. The accuracy surfaces have then been mapped using the `level.plot` function in the `GISTools` package.
+
+The code above has been devloped and described step by step to walk you through the process.
+
+It might be useful to develop functions to automate some of these operations. And then perhaps to combine some of these functions so that for any given class, a number of accuracy measures are returned. The code in this section starts to do this.
+
+# Overall Accuracy
+
+Remember that Overall Accuracy is calculated from the sum of the diagonals in the accuracy / confusion / error / validation matrix that compares *Predicted* against *Observed* classes, divided by the total number of data points.
+
+```{r eval=T}
+res <- vector(length = dim(data)[1])
+for (i in 1: dim(data)[1]) {
+	if (data$Boolean_RS[i] == data$Boolean_FS[i]) {
+		res[i] <- 1
+	}}
+```
+This can be calculated from the data directly:
+```{r eval=T}
+cat("overall accuracy:", sum(res)/length(res))
+```
+Or from a logistic regression and a the `alogit` function:
+```{r eval=T}
+mod.ov <- glm(res~1,family= binomial) 
+mod.coefs <- mod.ov$coefficients
+mod.coefs[2] <-sum(mod.coefs) 
+alogit <- function(x){exp(x)/(1+exp(x))}
+mod.ov <- alogit(mod.coefs[2]) 
+cat("overall accuracy:", mod.ov)
+```
+
+And if a `SpatialPointsDataFrame` object is created this can be used in a GW approach with the `ggwr` function. First some variables and paramters need to be set: 
+```{r eval=T, results='hide', warning=F, message=F}
+bw = 0.15
+grid <- SpatialPoints(expand.grid(x=seq(295000,363000,by=1000),
+  y=seq(3610000,3646000,by=1000)))
+res.spdf <- SpatialPointsDataFrame(coords = data[,2:3], 
+  data = data.frame(res))
+```
+Then the GW model can be constructed:
+```{r eval=T, results='hide', warning=F, message=F}
+gwr.mod <- ggwr(res~1, data = res.spdf, adapt = bw, 
+  fit.points = grid, family= binomial) 
+gwr.ov <- alogit(data.frame(gwr.mod$SDF)[,2])
+```
+And the variation in the distribution of Overall Accuracy values examined: 
+```{r eval=T, message = F}
+summary(gwr.ov)
+```
+
+## Create a Function
+A function to do all of this can be assembeled from the above code snippets.
+
+First of all it would be useful to create a `SpatialPointsDataFrame` of the all of the orginal data - this is the kind of dataset that you might bring as `shapefile` to this kind of analysis: 
+```{r}
+spdf <- SpatialPointsDataFrame(coords = data[,2:3], data = data.frame(data))
+head(data.frame(spdf))
+```
+Then define a function that takes this `spdf` as input and returns a `SpatialGridDataFrame` with the results of the geographically weighted analysis:
+
+```{r eval=T, results='hide', warning=F, message=F}
+gw.accuracy <- function(spdf, Field.class = "Boolean_FS", 
+    RS.class = "Boolean_RS", bw = 0.15, grid=grid, family= binomial){
+  # compare predicted and observed (classified and field)
+  res <- as.vector(spdf@data[RS.class] == spdf@data[Field.class]) * 1
+  # notice how the line of code above replaces the specification of 
+  # the  res vector, the for loop etc 
+  # Commented Out: A-spatial overall accuracy
+  # cat("Overall accuracy:",sum(res)/length(res), "\n")
+  # GW approach
+  alogit <- function(x){exp(x)/(1+exp(x))}
+  gwr.mod <- ggwr(res~1, data = spdf, adapt = bw, 
+    fit.points = grid, family= binomial) 
+  gwr.ov <- alogit(data.frame(gwr.mod$SDF)[,2])
+  # Commented Out: Summary of the GW variation
+  # cat("GW overall accuracy:", summary(gwr.ov))
+  # create SpatialPixelsDF to return from the function
+  gw.spdf <-SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(gwr.ov))
+  return(gw.spdf)
+}
+```
+And then this function can be run:  
+```{r eval=T, results='hide', warning=F, message=F}
+tmp <- gw.accuracy(spdf, Field.class = "Boolean_FS", 
+    RS.class = "Boolean_RS", bw = 0.15, grid, family= binomial)
+```
+And the results in `tmp` can be evaluated:
+```{r}
+summary(tmp)
+```
+
+## Create a Mapping Function
+And the `SpatialPixelsDataFrame` can be mapped by defining a mapping function:
+```{r}
+gw.mapping <- function(grd, index = 1, cols=brewer.pal(4,'Reds'), 
+    bounding.poly = lib, x = 297000, y = 3650000, tit = "My Title") {
+  z = data.frame(grd)[, index]
+  zz = z[!is.na(z)]
+  shades <- auto.shading(zz, cols = cols)
+  level.plot(grd, index = index, shades = shades)
+  masker = poly.outer(grd, bounding.poly, extend = 100)
+  add.masking(masker) 
+  plot(bounding.poly, add = T)
+  choro.legend(x, y,shades) 
+  title(tit)}
+```
+***Hint*** the `locator` function can be used to identify the `x` and `y` coordinates for the `choro.legend` function.
+
+```{r}
+par(mar = c(0,0,1,0))
+gw.mapping(tmp)
+```
+
+So now there are two functions, with a number of default parameters that the user can change,  that can be called to cauluate and then map overall accuracy: 
+```{r eval=F}
+tmp <- gw.accuracy(spdf)
+gw.mapping(tmp)
+```
+
+# User and Producer Accuracies
+
+So far we have just mapped User and Producer accuracies for the class of `Grazing Land`. This class was chosen to expemplify the GW methods because it *does* exhibit spatial varation int hese accuracies. But this might be the case for all classes. So, in this section we will first construct a function to compute the the GW User and Producer accuracies for all classes. Then we will examine the spatial variation and select per-class accuracies to map.   
+
+The stages in this are:
+
+1. For each class, construct a variable pair of remote sensing (*Predcited*) class and field (*Observed*) class:
+2. Compute the GW User accuracy 
+3. Compute the GW Prodcuer accuracy 
+4. Add the results to a data frame
+5. Create a SpatialPixelsDataFrame
+6. Evaluate the variation of the GW accuracy measures
+
+```{r eval=T,  message=F, warning=F}
+# define the classes
+class.list <- unique(data$Boolean_RS)[order(unique(data$Boolean_RS))]
+# pass this into a loop
+for (i in 1:length(class.list) ){
+  class <- class.list[i]	
+  # 1. Construct the variable pair
+  # RS indicates the class
+  rs.class <- (data$Boolean_RS == class) * 1
+  # FS indicates the class
+  fs.class <- (data$Boolean_FS == class) * 1
+  # join together
+  fsrs <- data.frame(cbind(fs.class,rs.class)) 
+  # convert to SPDF
+  fsrs.spdf <- SpatialPointsDataFrame(coords = data[,2:3], 
+    data = data.frame(fsrs))
+  # 2. GW User accuracy 
+  # define a bandwidth
+  bw = 0.15	
+  # construct GW model
+  gwr.mod <- ggwr(fs.class~rs.class, data = fsrs.spdf, 
+    adapt = bw,fit.points=grid, family= binomial) 
+  coefs <- data.frame(gwr.mod$SDF)[,2:3]
+  coefs[,2] <- rowSums(coefs) 
+  alogit <- function(x){exp(x)/(1+exp(x))}
+  gwr.user <- alogit(coefs[,2]) 
+  # 3. GW Producer accuracy
+  gwr.mod <- ggwr(rs.class~fs.class, data = fsrs.spdf, 
+    adapt = bw,fit.points=grid, family= binomial) 
+  coefs <- data.frame(gwr.mod$SDF)[,2:3]
+  coefs[,2] <- rowSums(coefs) 
+  gwr.producer <- alogit(coefs[,2]) 
+  # 4. Add these to the data frame
+  # define some variable names
+  tit.user <- sprintf("%s-User", class)
+  tit.producer <- sprintf("%s-Producer", class)
+  df <- data.frame(gwr.user, gwr.producer)
+  # name the df
+  names(df) <- c(tit.user, tit.producer)
+  # and combine
+  if(i ==1) df.res <- df
+  if(i > 1) df.res <- data.frame(df.res, df)
+}
+```
+The spatial variation in the coefficients is indicated by the distribution of User accuracy values:
+```{r eval=T}
+summary(df.res)
+```
+
+And these can used to consruct a `SpatialPixelsDataFrame` object:
+```{r eval=T}
+gw.all.spdf <-SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(df.res))
+```
+
+## Create a function 
+This can be wrapped up into a function that takes the  `spdf` variable created above
+```{r eval=T}
+spdf <- SpatialPointsDataFrame(coords = data[,2:3], data = data.frame(data))
+```
+and returns a `SpatialPixelsDataFrame` object:
+```{r eval=T,  message=F, warning=F}
+user.prod.accuracy <- function(spdf, Field.class = "Boolean_FS", 
+    RS.class = "Boolean_RS", bw = 0.15, grid=grid, family= binomial){
+  class.list <- unique(spdf@data[,RS.class])[order(unique(spdf@data[,RS.class]))]
+  # pass this into a loop
+  for (i in 1:length(class.list) ){
+    class <- class.list[i]	
+    # 1. Construct the variable pair
+    # RS indicates the class
+    rs.class <- (data$Boolean_RS == class) * 1
+    # FS indicates the class
+    fs.class <- (data$Boolean_FS == class) * 1
+    # join together
+    fsrs <- data.frame(cbind(fs.class,rs.class)) 
+    # convert to SPDF
+    fsrs.spdf <- SpatialPointsDataFrame(coords = data[,2:3], 
+      data = data.frame(fsrs))
+    # 2. GW User accuracy 
+    # define a bandwidth
+    bw = 0.15	
+    # construct GW model
+    gwr.mod <- ggwr(fs.class~rs.class, data = fsrs.spdf, 
+      adapt = bw,fit.points=grid, family= binomial) 
+    coefs <- data.frame(gwr.mod$SDF)[,2:3]
+    coefs[,2] <- rowSums(coefs) 
+    alogit <- function(x){exp(x)/(1+exp(x))}
+    gwr.user <- alogit(coefs[,2]) 
+    # 3. GW Producer accuracy
+    gwr.mod <- ggwr(rs.class~fs.class, data = fsrs.spdf, 
+      adapt = bw,fit.points=grid, family= binomial) 
+    coefs <- data.frame(gwr.mod$SDF)[,2:3]
+    coefs[,2] <- rowSums(coefs) 
+    gwr.producer <- alogit(coefs[,2]) 
+    # 4. Add these to the data frame
+    # define some variable names
+    tit.user <- sprintf("%s-User", class)
+    tit.producer <- sprintf("%s-Producer", class)
+    df <- data.frame(gwr.user, gwr.producer)
+    # name the df
+    names(df) <- c(tit.user, tit.producer)
+    # and combine
+    if(i ==1) df.res <- df
+    if(i > 1) df.res <- data.frame(df.res, df)
+  }
+  gw.spdf <-SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(df.res))
+  return(gw.spdf)
+}
+```
+And then this can be called
+```{r eval=F,  message=F, warning=F}
+gwr.all.spdf <- user.prod.accuracy(spdf, Field.class = "Boolean_FS", 
+    RS.class = "Boolean_RS", bw = 0.15, grid=grid, family= binomial)
+```
+Or accepting the defaults:
+```{r eval=T,  message=F, warning=F}
+gwr.all.spdf <- user.prod.accuracy(spdf)
+```
+And the contents examined again: 
+```{r eval=T}
+summary(gwr.all.spdf@data)
+```
+
+The elements of the `gwr.all.spdf` variable can be mapped using the fucntion defined earlier: 
+```{r eval=F}
+par(mar = c(0,0,1,0))
+gw.mapping(gwr.all.spdf, tit = names(gwr.all.spdf)[1])
+```
+Of course the parameters can be adjusted:
+```{r eval=F}
+gw.mapping(gwr.all.spdf, index = 2, tit = names(gwr.all.spdf)[2])
+gw.mapping(gwr.all.spdf, index = 5, tit = names(gwr.all.spdf)[5], 
+  cols = brewer.pal(6,'Spectral'))
+# or write to a file
+png(filename = "plot.png")
+gw.mapping(gwr.all.spdf, index = 5, tit = names(gwr.all.spdf)[5], 
+  cols = brewer.pal(6,'YlOrRd'))
+dev.off()
+```
+Or even put into a loop:
+```{r eval=F}
+for (i in seq(2, 10, by = 2)) {
+  gw.mapping(gwr.all.spdf, index = i, tit = names(gwr.all.spdf)[i])
+}  
+```
+And other shading schemes are available - see:
+```{r eval=F}
+display.brewer.all()
+```
+
