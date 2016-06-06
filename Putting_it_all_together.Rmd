@@ -24,7 +24,7 @@ head(data.frame(data))
 
 So far we have examined overall accuracy and per class User and Producer accuracies individually, showing the original *aspatial* or *global* measure, and then a summary of the distribution of the related *geographically weighted* values. The accuracy surfaces have then been mapped using the `level.plot` function in the `GISTools` package.
 
-The code above has been devloped and described step by step to walk you through the process.
+The code above has been developed and described step by step to walk you through the process.
 
 It might be useful to develop functions to automate some of these operations. And then perhaps to combine some of these functions so that for any given class, a number of accuracy measures are returned. The code in this section starts to do this.
 
@@ -53,7 +53,7 @@ mod.ov <- alogit(mod.coefs[2])
 cat("overall accuracy:", mod.ov)
 ```
 
-And if a `SpatialPointsDataFrame` object is created this can be used in a GW approach with the `ggwr` function. First some variables and paramters need to be set: 
+And if a `SpatialPointsDataFrame` object is created this can be used in a GW approach with the `ggwr` function. First some variables and parameters need to be set: 
 ```{r eval=T, results='hide', warning=F, message=F}
 bw = 0.15
 grid <- SpatialPoints(expand.grid(x=seq(295000,363000,by=1000),
@@ -73,9 +73,9 @@ summary(gwr.ov)
 ```
 
 ## Create a Function
-A function to do all of this can be assembeled from the above code snippets.
+A function to do all of this can be assembled from the above code snippets.
 
-First of all it would be useful to create a `SpatialPointsDataFrame` of the all of the orginal data - this is the kind of dataset that you might bring as `shapefile` to this kind of analysis: 
+First of all it would be useful to create a `SpatialPointsDataFrame` of the all of the original data - this is the kind of dataset that you might bring as `shapefile` to this kind of analysis: 
 ```{r}
 spdf <- SpatialPointsDataFrame(coords = data[,2:3], data = data.frame(data))
 head(data.frame(spdf))
@@ -135,7 +135,7 @@ par(mar = c(0,0,1,0))
 gw.mapping(tmp)
 ```
 
-So now there are two functions, with a number of default parameters that the user can change,  that can be called to cauluate and then map overall accuracy: 
+So now there are two functions, with a number of default parameters that the user can change,  that can be called to calculate and then map overall accuracy: 
 ```{r eval=F}
 tmp <- gw.accuracy(spdf)
 gw.mapping(tmp)
@@ -143,13 +143,13 @@ gw.mapping(tmp)
 
 # User and Producer Accuracies
 
-So far we have just mapped User and Producer accuracies for the class of `Grazing Land`. This class was chosen to expemplify the GW methods because it *does* exhibit spatial varation int hese accuracies. But this might be the case for all classes. So, in this section we will first construct a function to compute the the GW User and Producer accuracies for all classes. Then we will examine the spatial variation and select per-class accuracies to map.   
+So far we have just mapped User and Producer accuracies for the class of `Grazing Land`. This class was chosen to exemplify the GW methods because it *does* exhibit spatial variation in these accuracies. But this might be the case for all classes. So, in this section we will first construct a function to compute the the GW User and Producer accuracies for all classes. Then we will examine the spatial variation and select per-class accuracies to map.   
 
 The stages in this are:
 
 1. For each class, construct a variable pair of remote sensing (*Predcited*) class and field (*Observed*) class:
 2. Compute the GW User accuracy 
-3. Compute the GW Prodcuer accuracy 
+3. Compute the GW Producer accuracy 
 4. Add the results to a data frame
 5. Create a SpatialPixelsDataFrame
 6. Evaluate the variation of the GW accuracy measures
@@ -203,7 +203,7 @@ The spatial variation in the coefficients is indicated by the distribution of Us
 summary(df.res)
 ```
 
-And these can used to consruct a `SpatialPixelsDataFrame` object:
+And these can used to construct a `SpatialPixelsDataFrame` object:
 ```{r eval=T}
 gw.all.spdf <-SpatialPixelsDataFrame(gwr.mod$SDF, data.frame(df.res))
 ```
@@ -276,7 +276,7 @@ And the contents examined again:
 summary(gwr.all.spdf@data)
 ```
 
-The elements of the `gwr.all.spdf` variable can be mapped using the fucntion defined earlier: 
+The elements of the `gwr.all.spdf` variable can be mapped using the function defined earlier: 
 ```{r eval=F}
 par(mar = c(0,0,1,0))
 gw.mapping(gwr.all.spdf, tit = names(gwr.all.spdf)[1])
