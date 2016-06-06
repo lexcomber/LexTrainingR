@@ -5,7 +5,7 @@ The documents were created using `RMarkdown` in `RStudio` as PDFs. Unfortunately
 
 **For these reasons** the original PDF files are included in a zip file for each of the courses. You can also download the RMD files from the repository above and create the PDFs yourself: you could right click on the links below, save the `.RMD` files, open them in RStudio and click on the `Knit PDF` icon.
 
-## Spatial Analysis of (Remote Sensing) Accuracy with GW frameworks 
+## Spatial Analysis of (Remote Sensing) Accuracy with Geographically Weighted frameworks 
 This will be delivered in Montpellier in July 2016 by Lex Comber and Paul Harris as one of the Spatial Accuracy 2016 Conference workshops. The workshop includes the following sessions:
 
 0. [Overview](https://github.com/lexcomber/LexTrainingR/blob/master/overview.Rmd)
